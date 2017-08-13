@@ -42,13 +42,13 @@ DEFAULT_RADIUS = 1000
 this = sys.modules[__name__]	# For holding module globals
 
 class EliteSystem(object):
-    def __init__(self, id, name, x, y, z, updated_at):
+    def __init__(self, id, name, x, y, z, updated_at = None):
         self.id = id
         self.name = name
         self.x = x
         self.y = y
         self.z = z
-        self.updated_at = updated_at
+        self.updated_at = updated_at or 0
         self.distanceSquared = 10000 ** 2
 
     @staticmethod
@@ -86,10 +86,15 @@ class EliteSystem(object):
 
 
 class BackgroundWorker(Thread):
-    def __init__(self, queue, radius = 1000):
+    
+    JUMPED_SYSTEM = 0
+
+    def __init__(self, queue, radius = DEFAULT_RADIUS, updateInterval = DEFAULT_UPDATE_INTERVAL):
        Thread.__init__(self)
        self.queue = queue
        self.radius = radius
+       self.updateInterval = updateInterval
+       self.counter = 0
 
     def openDatabase(self):
         self.conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite"))
