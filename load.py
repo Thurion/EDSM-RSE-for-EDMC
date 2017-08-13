@@ -61,6 +61,23 @@ class EliteSystem(object):
     def getNormalDistance(self):
         return math.sqrt(self.distanceSquared)
 
+    def __str__(self):
+        return "id: {id}, name: {name}, distance^2: {distance:,.2f}, updated: {updated}".format(id=self.id, name=self.name, distance=self.distanceSquared, updated=self.updated_at)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.id == other.id
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.id)
+
 
 class BackgroundWorker(Thread):
     def __init__(self, queue, radius = 1000):
