@@ -19,13 +19,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import sys
 import os
-import ttk
 import math
 import json
-import Tkinter as tk
 import urllib2
 import webbrowser
 import sqlite3
+import ttk
+import Tkinter as tk
 from threading import Thread
 from Queue import Queue
 from l10n import Locale
@@ -45,30 +45,32 @@ class EliteSystem(object):
         self.updated_at = updated_at
         self.distanceSquared = 10000 ** 2
 
-    def updateDistanceToCurrentCommanderPosition(self, coordinates):
-        self.distanceSquared = self.calculateDistanceSquaredWithCoordinates(*coordinates)
+    @staticmethod
+    def calculateDistanceSquared(x1, x2, y1, y2, z1, z2):
+        return (x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2
+
+    def updateDistanceToCurrentCommanderPosition(self, x, y, z):
+        self.distanceSquared = self.calculateDistanceSquaredWithCoordinates(x, y, z)
 
     def calculateDistanceSquaredWithCoordinates(self, x2, y2, z2):
-        return (self.x - x2) ** 2 + (self.y - y2) ** 2 + (self.z - z2) ** 2
-
-    def calculateDistanceSquared(self, system2):
-        return (self.x - system2.x) ** 2 + (self.y - system2.y) ** 2 + (self.z - system2.z) ** 2
+        return self.calculateDistanceSquared(self.x, x2, self.y, y2, self.z, z2)
 
     def calculateDistance(self, system2):
-        return math.sqrt(self.calculateDistanceSquared(system2))
+        return math.sqrt(self.calculateDistanceSquaredWithCoordinates(system2.x, system2.y, system2.z))
 
     def getNormalDistance(self):
         return math.sqrt(self.distanceSquared)
 
+
 class BackgroundWorker(Thread):
-    def __init__(self, queue):
+    def __init__(self, queue, radius = 1000):
        Thread.__init__(self)
        self.queue = queue
+       self.radius = radius
 
     def openDatabase(self):
-        conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite"))
-        conn.text_factory = str
-        return conn.cursor()
+        self.conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite"))
+        self.c = self.conn.cursor()
 
     def initializeDictionaries(self):
         self.realNameToPg = dict()
@@ -79,8 +81,23 @@ class BackgroundWorker(Thread):
             self.realNameToPg.get(realName.lower(), list()).append(pgName)
             self.pgToRealName[pgName.lower()] = realName
 
+    def fetchSystemsInRadiusAroundPoint(self, x, y, z):
+        sql = "SELECT * FROM systems WHERE systems.x BETWEEN ? AND ? AND systems.y BETWEEN ? AND ? AND systems.z BETWEEN ? AND ?"
+        # make sure that the between statements are BETWEEN lower limit AND higher limit
+        systems = list()
+        refSystem = EliteSystem
+        for row in self.c.execute(sql, (x - self.radius, x + self.radius, y - self.radius, y + self.radius, z - self.radius, z + self.radius)):
+            _, _, x2, y2, z2, _ = row
+            distance = EliteSystem.calculateDistanceSquared(x, x2, y, y2, z, z2)
+            if distance <= self.radius ** 2:
+                eliteSystem = EliteSystem(*row)
+                eliteSystem.distanceSquared = distance
+                systems.append(eliteSystem)
+        systems.sort(key=lambda l: l.distanceSquared)
+        return systems
+
     def run(self):
-        self.c = self.openDatabase()
+        self.openDatabase()
         self.initializeDictionaries()
         while True:
             instruction, args = self.queue.get()
@@ -90,6 +107,7 @@ class BackgroundWorker(Thread):
 def plugin_start():
     this.queue = Queue()
     this.worker = BackgroundWorker(this.queue)
+    this.worker.name = "EDSM-RSE Background Worker"
     this.worker.daemon = True
     this.worker.start()
 
