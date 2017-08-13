@@ -31,6 +31,31 @@ import myNotebook as nb
 
 VERSION = "0.1 Beta"
 
+class EliteSystem(object):
+    def __init__(self, id, name, x, y, z, updated_at):
+        self.id = id
+        self.name = name
+        self.x = x
+        self.y = y
+        self.z = z
+        self.updated_at = updated_at
+        self.distanceSquared = 10000 ** 2
+
+    def updateDistanceToCurrentCommanderPosition(self, coordinates):
+        self.distanceSquared = self.calculateDistanceSquaredWithCoordinates(*coordinates)
+
+    def calculateDistanceSquaredWithCoordinates(self, x2, y2, z2):
+        return (self.x - x2) ** 2 + (self.y - y2) ** 2 + (self.z - z2) ** 2
+
+    def calculateDistanceSquared(self, system2):
+        return (self.x - system2.x) ** 2 + (self.y - system2.y) ** 2 + (self.z - system2.z) ** 2
+
+    def calculateDistance(self, system2):
+        return math.sqrt(self.calculateDistanceSquared(system2))
+
+    def getNormalDistance(self):
+        return math.sqrt(self.distanceSquared)
+
 this = sys.modules[__name__]	# For holding module globals
 
 def plugin_start():
