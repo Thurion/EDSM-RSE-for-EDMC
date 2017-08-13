@@ -18,18 +18,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
 import sys
+import os
 import ttk
 import math
 import json
 import Tkinter as tk
 import urllib2
 import webbrowser
+import sqlite3
 from threading import Thread
+from Queue import Queue
 from l10n import Locale
 from config import config
 import myNotebook as nb
 
 VERSION = "0.1 Beta"
+this = sys.modules[__name__]	# For holding module globals
 
 class EliteSystem(object):
     def __init__(self, id, name, x, y, z, updated_at):
@@ -56,9 +60,39 @@ class EliteSystem(object):
     def getNormalDistance(self):
         return math.sqrt(self.distanceSquared)
 
-this = sys.modules[__name__]	# For holding module globals
+class BackgroundWorker(Thread):
+    def __init__(self, queue):
+       Thread.__init__(self)
+       self.queue = queue
+
+    def openDatabase(self):
+        conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite"))
+        conn.text_factory = str
+        return conn.cursor()
+
+    def initializeDictionaries(self):
+        self.realNameToPg = dict()
+        self.pgToRealName = dict()
+        for row in self.c.execute("SELECT * FROM duplicates"):
+            _, realName, pgName = row
+            self.realNameToPg.setdefault(realName.lower(), list())
+            self.realNameToPg.get(realName.lower(), list()).append(pgName)
+            self.pgToRealName[pgName.lower()] = realName
+
+    def run(self):
+        self.c = self.openDatabase()
+        self.initializeDictionaries()
+        while True:
+            instruction, args = self.queue.get()
+            self.queue.task_done()
+
 
 def plugin_start():
+    this.queue = Queue()
+    this.worker = BackgroundWorker(this.queue)
+    this.worker.daemon = True
+    this.worker.start()
+
     return 'EDSM-RSE'
 
 def plugin_prefs(parent):
