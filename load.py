@@ -24,6 +24,7 @@ import json
 import urllib2
 import webbrowser
 import sqlite3
+import time
 import ttk
 import Tkinter as tk
 from threading import Thread
@@ -33,6 +34,11 @@ from config import config
 import myNotebook as nb
 
 VERSION = "0.1 Beta"
+EDSM_UPDATE_INTERVAL = 3600 # 1 hour. used for EliteSystem
+EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 25
+DEFAULT_UPDATE_INTERVAL = 1
+DEFAULT_RADIUS = 1000
+
 this = sys.modules[__name__]	# For holding module globals
 
 class EliteSystem(object):
