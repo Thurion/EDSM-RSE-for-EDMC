@@ -153,7 +153,7 @@ class BackgroundWorker(Thread):
 
     def removeSystemsFromDatabase(self, systems):
         for system in systems:
-            self.c.execute("DELETE FROM systems WHERE systems.id = ?", (system.id))
+            self.c.execute("DELETE FROM systems WHERE systems.id = ?", (system.id,))
         self.conn.commit()
 
     def removeSystems(self, systems):
