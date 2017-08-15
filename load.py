@@ -222,12 +222,16 @@ class BackgroundWorker(Thread):
                 if closestSystem.getUncertainty() > self.radius and closestSystem not in self.systemListHighUncertainty:
                     self.systemListHighUncertainty.append(closestSystem)
 
-                print (closestSystem)
+                print (closestSystem) # TODO
             else:
                 pass # TODO remove UI elements
         if starName.lower() in self.systemDict: # arrived in system without coordinates
             # TODO handle dupes
-            pass # TODO
+            system = self.systemDict.get(starName.lower(), None)
+            if system:
+                self.removeSystemsFromDatabase([system])
+                self.removeSystems([system])
+            print(self.systemList[0]) # TODO
 
     def run(self):
         self.openDatabase()
