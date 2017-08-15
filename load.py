@@ -195,7 +195,8 @@ class BackgroundWorker(Thread):
 
     def handleJumpedSystem(self, coordinates, starName):
         self.counter += 1
-        if self.counter % self.updateInterval == 0: 
+        tick = self.counter % self.updateInterval == 0
+        if tick: 
             if __debug__: print("interval tick")
             # interval -> update systems
             self.generateListsFromDatabase(*coordinates)
@@ -229,6 +230,7 @@ class BackgroundWorker(Thread):
                 print (closestSystem) # TODO
             else:
                 pass # TODO remove UI elements
+
         if starName.lower() in self.systemDict: # arrived in system without coordinates
             # TODO handle dupes
             if __debug__: print("arrived in {}".format(starName))
@@ -236,6 +238,12 @@ class BackgroundWorker(Thread):
             if system:
                 self.removeSystemsFromDatabase([system])
                 self.removeSystems([system])
+
+            if not tick:
+                # distances need to be recalculated
+                for system in self.systemList:
+                    system.updateDistanceToCurrentCommanderPosition(*coordinates)
+                systems.sort(key=lambda l: l.distance)
             print(self.systemList[0]) # TODO
 
     def run(self):
