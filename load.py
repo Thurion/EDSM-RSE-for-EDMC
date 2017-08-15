@@ -169,9 +169,11 @@ class BackgroundWorker(Thread):
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyKnownCoordinates=1&"
         params = list()
         currentTime = int(time.time())
+        systemsToUpdateTime = list()
         for system in systems:
             if (currentTime - system.updated_at) > EDSM_UPDATE_INTERVAL:
                 params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
+                systemsToUpdateTime.append(system)
         edsmUrl += "&".join(params)
         if len(params) > 0:
             try:
@@ -181,6 +183,7 @@ class BackgroundWorker(Thread):
                 names = set()
                 for entry in edsmJson:
                     names.add(entry["name"].lower())
+                self.updateTimeForSystems(systemsToUpdateTime, currentTime)
                 return names
             except:
                # ignore. the EDSM call is not required
@@ -207,7 +210,6 @@ class BackgroundWorker(Thread):
                     self.removeSystems(systemsWithCoordinates)
                     closestSystems = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
                 if len(closestSystems) > 0:
-                    self.updateTimeForSystems(closestSystems, currentTime)
                     # there are still systems in the results -> stop here
                     break
                 else:
