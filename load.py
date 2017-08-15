@@ -141,6 +141,13 @@ class BackgroundWorker(Thread):
         for system in self.systemListHighUncertainty:
             self.systemDict.setdefault(system.name.lower(), system)
 
+    def updateTimeForSystems(self, systems, t):
+        for system in systems:
+            system.updated_at = t
+            self.c.execute("UPDATE systems SET last_checked = ? WHERE systems.id = ?", (t, system.id))
+        if (systems):
+            self.conn.commit() # commit only if the list contained items
+
     def removeSystemsFromDatabase(self, systems):
         for system in systems:
             self.c.execute("DELETE FROM systems WHERE systems.id = ?", (system.id))
