@@ -301,6 +301,9 @@ def plugin_prefs(parent):
     frame = nb.Frame(parent)
     return frame
 
+def prefs_changed():
+    pass
+
 def plugin_app(parent):
     frame = tk.Frame(parent)
     return frame
