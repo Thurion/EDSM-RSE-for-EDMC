@@ -281,6 +281,10 @@ class BackgroundWorker(Thread):
         self.closeDatabase()
         self.queue.task_done()
 
+def checkTransmissionOptions():
+    eddn = (config.getint("output") & config.OUT_SYS_EDDN) == config.OUT_SYS_EDDN
+    edsm = config.getint('edsm_out') and 1
+    return eddn or edsm
 
 def plugin_start():
     this.queue = Queue()
@@ -288,6 +292,8 @@ def plugin_start():
     this.worker.name = "EDSM-RSE Background Worker"
     this.worker.daemon = True
     this.worker.start()
+
+    this.enabled = checkTransmissionOptions()
 
     return 'EDSM-RSE'
 
@@ -302,13 +308,15 @@ def plugin_prefs(parent):
     return frame
 
 def prefs_changed():
-    pass
+    this.enabled = checkTransmissionOptions()
 
 def plugin_app(parent):
     frame = tk.Frame(parent)
     return frame
 
 def journal_entry(cmdr, system, station, entry, state):
+    if not this.enabled:
+        return
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
         if "StarPos" in entry:
             this.queue.put((BackgroundWorker.JUMPED_SYSTEM, (tuple(entry["StarPos"]), entry["StarSystem"])))
