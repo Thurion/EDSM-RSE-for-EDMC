@@ -75,7 +75,7 @@ class EliteSystem(object):
         return self.calculateDistanceToCoordinates(system2.x, system2.y, system2.z)
 
     def __str__(self):
-        return "id: {id}, name: {name}, distance^2: {distance:,.2f}, updated: {updated}".format(id=self.id, name=self.name, distance=self.distance, updated=self.updated_at)
+        return "id: {id}, name: {name}, distance: {distance:,.2f}, updated: {updated}, uncertainty: {uncertainty}".format(id=self.id, name=self.name, distance=self.distance, updated=self.updated_at, uncertainty=self.getUncertainty())
 
     def __repr__(self):
         return self.__str__()
