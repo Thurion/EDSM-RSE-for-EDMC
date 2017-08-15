@@ -243,7 +243,7 @@ class BackgroundWorker(Thread):
                 # distances need to be recalculated
                 for system in self.systemList:
                     system.updateDistanceToCurrentCommanderPosition(*coordinates)
-                systems.sort(key=lambda l: l.distance)
+                self.systemList.sort(key=lambda l: l.distance)
             print(self.systemList[0]) # TODO
 
     def run(self):
