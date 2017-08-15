@@ -21,18 +21,21 @@ import sys
 import os
 import math
 import json
+import re
 import urllib2
 import webbrowser
 import sqlite3
 import time
-import ttk
-import Tkinter as tk
-import re
+
 from threading import Thread
 from Queue import Queue
+
+import Tkinter as tk
+import myNotebook as nb
+
 from l10n import Locale
 from config import config
-import myNotebook as nb
+import plug
 
 if __debug__:
     from traceback import print_exc
@@ -111,10 +114,25 @@ class BackgroundWorker(Thread):
         self.systemDict = dict()
 
     def openDatabase(self):
-        self.conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite"))
-        self.c = self.conn.cursor()
+        if not os.path.exists(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite")):
+            plug.show_error("EDSM-RSE: Database could not be opened")
+            sys.stderr.write("EDSM-RSE: Database could not be opened\n")
+            return
+        try:
+            self.conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite"))
+            self.c = self.conn.cursor()
+        except Exception as e:
+            error = "Database could not be opened"
+
+    def closeDatabase(self):
+        if not hasattr(self, "c") or not self.c:
+            return # database not loaded
+
+        self.conn.close()
 
     def initializeDictionaries(self):
+        if not hasattr(self, "c") or not self.c:
+            return # database not loaded
         self.realNameToPg = dict()
         self.pgToRealName = dict()
         for row in self.c.execute("SELECT * FROM duplicates"):
@@ -194,6 +212,9 @@ class BackgroundWorker(Thread):
         return set()
 
     def handleJumpedSystem(self, coordinates, starName):
+        if not hasattr(self, "c") or not self.c:
+            return # no database. do nothing
+
         self.counter += 1
         tick = self.counter % self.updateInterval == 0
         if tick: 
@@ -251,9 +272,14 @@ class BackgroundWorker(Thread):
         self.initializeDictionaries()
         while True:
             instruction, args = self.queue.get()
+            if not instruction:
+                break
+
             if instruction == self.JUMPED_SYSTEM:
                 self.handleJumpedSystem(*args)
             self.queue.task_done()
+        self.closeDatabase()
+        self.queue.task_done()
 
 
 def plugin_start():
@@ -264,6 +290,12 @@ def plugin_start():
     this.worker.start()
 
     return 'EDSM-RSE'
+
+def plugin_close():
+    # Signal thread to close and wait for it
+    this.queue.put((None, None))
+    this.worker.join()
+    this.worker = None
 
 def plugin_prefs(parent):
     frame = nb.Frame(parent)
