@@ -187,11 +187,53 @@ class BackgroundWorker(Thread):
                if __debug__: print_exc()
         return set()
 
+    def handleJumpedSystem(self, coordinates, starName):
+        self.counter += 1
+        if self.counter % self.updateInterval == 0: 
+            # interval -> update systems
+            self.generateListsFromDatabase(*coordinates)
+            lowerLimit = 0
+            upperLimit = EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+            
+            tries = 0
+            while tries < 3: # no do-while loops...
+                closestSystems = self.systemList[lowerLimit:upperLimit]
+                currentTime = int(time.time())
+                edsmResults = self.queryEDSM(closestSystems)
+                if len(edsmResults) > 0:
+                    # remove systems with coordinates
+                    systemsWithCoordinates = filter(lambda s: s.name.lower() in edsmResults, closestSystems)
+                    self.removeSystemsFromDatabase(systemsWithCoordinates)
+                    self.removeSystems(systemsWithCoordinates)
+                    closestSystems = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
+                if len(closestSystems) > 0:
+                    self.updateTimeForSystems(closestSystems, currentTime)
+                    # there are still systems in the results -> stop here
+                    break
+                else:
+                    tries += 1
+                    lowerLimit += EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+                    upperLimit += EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+
+            if len(closestSystems) > 0:
+                closestSystem = closestSystems[0]
+                if closestSystem.getUncertainty() > self.radius and closestSystem not in self.systemListHighUncertainty:
+                    self.systemListHighUncertainty.append(closestSystem)
+
+                print (closestSystem)
+            else:
+                pass # TODO remove UI elements
+        if starName.lower() in self.systemDict: # arrived in system without coordinates
+            # TODO handle dupes
+            pass # TODO
+
     def run(self):
         self.openDatabase()
         self.initializeDictionaries()
         while True:
             instruction, args = self.queue.get()
+            if instruction == self.JUMPED_SYSTEM:
+                self.handleJumpedSystem(*args)
             self.queue.task_done()
 
 
@@ -213,5 +255,7 @@ def plugin_app(parent):
     return frame
 
 def journal_entry(cmdr, system, station, entry, state):
-    pass
+    if entry["event"] == "FSDJump" or entry["event"] == "Location":
+        if "StarPos" in entry:
+            this.queue.put((BackgroundWorker.JUMPED_SYSTEM, (tuple(entry["StarPos"]), entry["StarSystem"])))
 
