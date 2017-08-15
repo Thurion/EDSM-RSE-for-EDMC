@@ -145,6 +145,7 @@ class BackgroundWorker(Thread):
             self.systemDict.setdefault(system.name.lower(), system)
 
     def updateTimeForSystems(self, systems, t):
+        if __debug__: print("updateTimeForSystems for {} systems".format(len(systems)))
         for system in systems:
             system.updated_at = t
             self.c.execute("UPDATE systems SET last_checked = ? WHERE systems.id = ?", (t, system.id))
@@ -157,6 +158,7 @@ class BackgroundWorker(Thread):
         self.conn.commit()
 
     def removeSystems(self, systems):
+        if __debug__: print("removing {} systems".format(len(systems)))
         self.systemList = filter(lambda x: x not in systems, self.systemList)
         self.systemListHighUncertainty = filter(lambda x: x not in systems, self.systemListHighUncertainty)
 
@@ -175,6 +177,7 @@ class BackgroundWorker(Thread):
                 params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
                 systemsToUpdateTime.append(system)
         edsmUrl += "&".join(params)
+        if __debug__: print("querying EDSM for {} systems".format(len(params)))
         if len(params) > 0:
             try:
                 url = urllib2.urlopen(edsmUrl, timeout=5)
@@ -193,6 +196,7 @@ class BackgroundWorker(Thread):
     def handleJumpedSystem(self, coordinates, starName):
         self.counter += 1
         if self.counter % self.updateInterval == 0: 
+            if __debug__: print("interval tick")
             # interval -> update systems
             self.generateListsFromDatabase(*coordinates)
             lowerLimit = 0
@@ -227,6 +231,7 @@ class BackgroundWorker(Thread):
                 pass # TODO remove UI elements
         if starName.lower() in self.systemDict: # arrived in system without coordinates
             # TODO handle dupes
+            if __debug__: print("arrived in {}".format(starName))
             system = self.systemDict.get(starName.lower(), None)
             if system:
                 self.removeSystemsFromDatabase([system])
