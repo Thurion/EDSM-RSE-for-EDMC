@@ -314,9 +314,9 @@ def plugin_app(parent):
     frame = tk.Frame(parent)
     return frame
 
-def journal_entry(cmdr, system, station, entry, state):
-    if not this.enabled:
-        return
+def journal_entry(cmdr, is_beta, system, station, entry, state):
+    if not this.enabled or is_beta:
+        return # nothing to do here
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
         if "StarPos" in entry:
             this.queue.put((BackgroundWorker.JUMPED_SYSTEM, (tuple(entry["StarPos"]), entry["StarSystem"])))
