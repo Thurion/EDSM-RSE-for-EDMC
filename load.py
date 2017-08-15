@@ -120,20 +120,26 @@ class BackgroundWorker(Thread):
             self.realNameToPg.get(realName.lower(), list()).append(pgName)
             self.pgToRealName[pgName.lower()] = realName
 
-    def fetchSystemsInRadiusAroundPoint(self, x, y, z):
+    def fetchAndUpdateSystemsInRadiusAroundPoint(self, x, y, z):
         sql = "SELECT * FROM systems WHERE systems.x BETWEEN ? AND ? AND systems.y BETWEEN ? AND ? AND systems.z BETWEEN ? AND ?"
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         systems = list()
-        refSystem = EliteSystem
-        for row in self.c.execute(sql, (x - self.radius, x + self.radius, y - self.radius, y + self.radius, z - self.radius, z + self.radius)):
+        self.c.execute(sql, (x - self.radius, x + self.radius, y - self.radius, y + self.radius, z - self.radius, z + self.radius))
+        for row in self.c.fetchall():
             _, _, x2, y2, z2, _ = row
-            distance = EliteSystem.calculateDistanceSquared(x, x2, y, y2, z, z2)
-            if distance <= self.radius ** 2:
+            distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
+            if distance <= self.radius:
                 eliteSystem = EliteSystem(*row)
-                eliteSystem.distanceSquared = distance
+                eliteSystem.distance = distance
                 systems.append(eliteSystem)
-        systems.sort(key=lambda l: l.distanceSquared)
-        return systems
+        systems.sort(key=lambda l: l.distance)
+
+        self.systemList = systems
+        self.systemDict = dict()
+        for system in self.systemList:
+            self.systemDict.setdefault(system.name.lower(), system)
+        for system in self.systemListHighUncertainty:
+            self.systemDict.setdefault(system.name.lower(), system)
 
     def removeSystemsFromDatabase(self, systems):
         for system in systems:
