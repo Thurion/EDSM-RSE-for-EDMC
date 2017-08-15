@@ -120,7 +120,7 @@ class BackgroundWorker(Thread):
             self.realNameToPg.get(realName.lower(), list()).append(pgName)
             self.pgToRealName[pgName.lower()] = realName
 
-    def fetchAndUpdateSystemsInRadiusAroundPoint(self, x, y, z):
+    def generateListsFromDatabase(self, x, y, z):
         sql = "SELECT * FROM systems WHERE systems.x BETWEEN ? AND ? AND systems.y BETWEEN ? AND ? AND systems.z BETWEEN ? AND ?"
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         systems = list()
