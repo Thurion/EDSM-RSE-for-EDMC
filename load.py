@@ -94,14 +94,18 @@ class EliteSystem(object):
 
 class BackgroundWorker(Thread):
     
+    # instructions
     JUMPED_SYSTEM = 0
 
     def __init__(self, queue, radius = DEFAULT_RADIUS, updateInterval = DEFAULT_UPDATE_INTERVAL):
-       Thread.__init__(self)
-       self.queue = queue
-       self.radius = radius
-       self.updateInterval = updateInterval
-       self.counter = 0
+        Thread.__init__(self)
+        self.queue = queue
+        self.radius = radius
+        self.updateInterval = updateInterval
+        self.counter = -1
+        self.systemList = list()
+        self.systemListHighUncertainty = list()
+        self.systemDict = dict()
 
     def openDatabase(self):
         self.conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite"))
