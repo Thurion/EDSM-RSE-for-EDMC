@@ -135,6 +135,18 @@ class BackgroundWorker(Thread):
         systems.sort(key=lambda l: l.distanceSquared)
         return systems
 
+    def removeSystemsFromDatabase(self, systems):
+        for system in systems:
+            self.c.execute("DELETE FROM systems WHERE systems.id = ?", (system.id))
+        self.conn.commit()
+
+    def removeSystems(self, systems):
+        self.systemList = filter(lambda x: x not in systems, self.systemList)
+        self.systemListHighUncertainty = filter(lambda x: x not in systems, self.systemListHighUncertainty)
+
+        for system in systems:
+            self.systemDict.pop(system.name.lower(), None)
+
     def run(self):
         self.openDatabase()
         self.initializeDictionaries()
