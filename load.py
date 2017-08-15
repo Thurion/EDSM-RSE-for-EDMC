@@ -27,6 +27,7 @@ import sqlite3
 import time
 import ttk
 import Tkinter as tk
+import re
 from threading import Thread
 from Queue import Queue
 from l10n import Locale
@@ -38,6 +39,9 @@ EDSM_UPDATE_INTERVAL = 3600 # 1 hour. used for EliteSystem
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 25
 DEFAULT_UPDATE_INTERVAL = 1
 DEFAULT_RADIUS = 1000
+# regex taken from EDTS https://bitbucket.org/Esvandiary/edts
+PG_SYSTEM_REGEX = re.compile(r"^(?P<sector>[\w\s'.()/-]+) (?P<l1>[A-Za-z])(?P<l2>[A-Za-z])-(?P<l3>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<n1>\d+)-)?(?P<n2>\d+)$")
+MC_VALUES = { "a" : 0, "b" : 1, "c" : 2, "d" : 3, "e" : 4, "f" : 5, "g" : 6, "h" : 7}
 
 this = sys.modules[__name__]	# For holding module globals
 
@@ -49,26 +53,29 @@ class EliteSystem(object):
         self.y = y
         self.z = z
         self.updated_at = updated_at or 0
-        self.distanceSquared = 10000 ** 2
+        self.distance = 10000 #set initial value to be out of reach
+
+    def getUncertainty(self):
+        if PG_SYSTEM_REGEX.match(self.name):
+            mc = self.name.split(" ")[-1][:1].lower()
+            return (10 * 2 ** MC_VALUES.get(mc, 0)) / 2
+        return 0
 
     @staticmethod
-    def calculateDistanceSquared(x1, x2, y1, y2, z1, z2):
-        return (x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2
+    def calculateDistance(x1, x2, y1, y2, z1, z2):
+        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
 
     def updateDistanceToCurrentCommanderPosition(self, x, y, z):
-        self.distanceSquared = self.calculateDistanceSquaredWithCoordinates(x, y, z)
+        self.distance = self.calculateDistanceToCoordinates(x, y, z)
 
-    def calculateDistanceSquaredWithCoordinates(self, x2, y2, z2):
-        return self.calculateDistanceSquared(self.x, x2, self.y, y2, self.z, z2)
+    def calculateDistanceToCoordinates(self, x2, y2, z2):
+        return self.calculateDistance(self.x, x2, self.y, y2, self.z, z2)
 
-    def calculateDistance(self, system2):
-        return math.sqrt(self.calculateDistanceSquaredWithCoordinates(system2.x, system2.y, system2.z))
-
-    def getNormalDistance(self):
-        return math.sqrt(self.distanceSquared)
+    def calculateDistanceToSystem(self, system2):
+        return self.calculateDistanceToCoordinates(system2.x, system2.y, system2.z)
 
     def __str__(self):
-        return "id: {id}, name: {name}, distance^2: {distance:,.2f}, updated: {updated}".format(id=self.id, name=self.name, distance=self.distanceSquared, updated=self.updated_at)
+        return "id: {id}, name: {name}, distance^2: {distance:,.2f}, updated: {updated}".format(id=self.id, name=self.name, distance=self.distance, updated=self.updated_at)
 
     def __repr__(self):
         return self.__str__()
