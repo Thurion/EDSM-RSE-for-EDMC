@@ -224,9 +224,9 @@ class BackgroundWorker(Thread):
 
             if len(closestSystems) > 0:
                 closestSystem = closestSystems[0]
-                if closestSystem.getUncertainty() > self.radius and closestSystem not in self.systemListHighUncertainty:
+                # 1.732051 is the length of the vector (1, 1, 1) and is the distance in the worst case
+                if (closestSystem.getUncertainty() * 1.732051) > self.radius and closestSystem not in self.systemListHighUncertainty:
                     self.systemListHighUncertainty.append(closestSystem)
-
                 print (closestSystem) # TODO
             else:
                 pass # TODO remove UI elements
