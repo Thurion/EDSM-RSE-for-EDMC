@@ -34,6 +34,9 @@ from l10n import Locale
 from config import config
 import myNotebook as nb
 
+if __debug__:
+    from traceback import print_exc
+
 VERSION = "0.1 Beta"
 EDSM_UPDATE_INTERVAL = 3600 # 1 hour. used for EliteSystem
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 25
@@ -159,6 +162,30 @@ class BackgroundWorker(Thread):
 
         for system in systems:
             self.systemDict.pop(system.name.lower(), None)
+
+    def queryEDSM(self, systems):
+        """ returns a set of systems names in lower case with known coordinates """
+        # TODO handle dupes
+        edsmUrl = "https://www.edsm.net/api-v1/systems?onlyKnownCoordinates=1&"
+        params = list()
+        currentTime = int(time.time())
+        for system in systems:
+            if (currentTime - system.updated_at) > EDSM_UPDATE_INTERVAL:
+                params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
+        edsmUrl += "&".join(params)
+        if len(params) > 0:
+            try:
+                url = urllib2.urlopen(edsmUrl, timeout=5)
+                response = url.read()
+                edsmJson = json.loads(response)
+                names = set()
+                for entry in edsmJson:
+                    names.add(entry["name"].lower())
+                return names
+            except:
+               # ignore. the EDSM call is not required
+               if __debug__: print_exc()
+        return set()
 
     def run(self):
         self.openDatabase()
