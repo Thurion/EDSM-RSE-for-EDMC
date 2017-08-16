@@ -107,8 +107,8 @@ class EliteSystem(object):
 
 class BackgroundWorker(Thread):
     
-    # instructions
-    JUMPED_SYSTEM = 0
+    # instructions. don't use 0!
+    JUMPED_SYSTEM = 1
 
     def __init__(self, queue, radius = DEFAULT_RADIUS, updateInterval = DEFAULT_UPDATE_INTERVAL):
         Thread.__init__(self)
