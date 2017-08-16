@@ -118,6 +118,7 @@ class BackgroundWorker(Thread):
         self.systemListHighUncertainty = list()
         self.systemDict = dict()
 
+
     def openDatabase(self):
         if not os.path.exists(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite")):
             plug.show_error("EDSM-RSE: Database could not be opened")
@@ -129,11 +130,13 @@ class BackgroundWorker(Thread):
         except Exception as e:
             error = "Database could not be opened"
 
+
     def closeDatabase(self):
         if not hasattr(self, "c") or not self.c:
             return # database not loaded
 
         self.conn.close()
+
 
     def initializeDictionaries(self):
         if not hasattr(self, "c") or not self.c:
@@ -145,6 +148,7 @@ class BackgroundWorker(Thread):
             self.realNameToPg.setdefault(realName.lower(), list())
             self.realNameToPg.get(realName.lower(), list()).append(pgName)
             self.pgToRealName[pgName.lower()] = realName
+
 
     def generateListsFromDatabase(self, x, y, z):
         sql = "SELECT * FROM systems WHERE systems.x BETWEEN ? AND ? AND systems.y BETWEEN ? AND ? AND systems.z BETWEEN ? AND ?"
@@ -167,6 +171,7 @@ class BackgroundWorker(Thread):
         for system in self.systemListHighUncertainty:
             self.systemDict.setdefault(system.name.lower(), system)
 
+
     def updateTimeForSystems(self, systems, t):
         if __debug__: print("updateTimeForSystems for {} systems".format(len(systems)))
         for system in systems:
@@ -175,10 +180,12 @@ class BackgroundWorker(Thread):
         if (systems):
             self.conn.commit() # commit only if the list contained items
 
+
     def removeSystemsFromDatabase(self, systems):
         for system in systems:
             self.c.execute("DELETE FROM systems WHERE systems.id = ?", (system.id,))
         self.conn.commit()
+
 
     def removeSystems(self, systems):
         if __debug__: print("removing {} systems".format(len(systems)))
@@ -187,6 +194,7 @@ class BackgroundWorker(Thread):
 
         for system in systems:
             self.systemDict.pop(system.name.lower(), None)
+
 
     def queryEDSM(self, systems):
         """ returns a set of systems names in lower case with known coordinates """
@@ -215,6 +223,7 @@ class BackgroundWorker(Thread):
                # ignore. the EDSM call is not required
                if __debug__: print_exc()
         return set()
+
 
     def handleJumpedSystem(self, coordinates, starName):
         if not hasattr(self, "c") or not self.c:
@@ -274,6 +283,7 @@ class BackgroundWorker(Thread):
             this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
             this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
+
     def run(self):
         self.openDatabase()
         self.initializeDictionaries()
@@ -288,10 +298,12 @@ class BackgroundWorker(Thread):
         self.closeDatabase()
         self.queue.task_done()
 
+
 def checkTransmissionOptions():
     eddn = (config.getint("output") & config.OUT_SYS_EDDN) == config.OUT_SYS_EDDN
     edsm = config.getint('edsm_out') and 1
     return eddn or edsm
+
 
 def plugin_start():
     this.queue = Queue()
@@ -322,18 +334,22 @@ def updateUI(event = None):
         this.distanceValue.grid(row=1, column=1, sticky=tk.W)
         this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance), uncertainty=eliteSystem.getUncertainty())
 
+
 def plugin_close():
     # Signal thread to close and wait for it
     this.queue.put((None, None))
     this.worker.join()
     this.worker = None
 
+
 def plugin_prefs(parent):
     frame = nb.Frame(parent)
     return frame
 
+
 def prefs_changed():
     this.enabled = checkTransmissionOptions()
+
 
 def plugin_app(parent):
     this.frame = tk.Frame(parent)
@@ -347,6 +363,7 @@ def plugin_app(parent):
     this.lastEventInfo = dict()
     updateUI()
     return frame
+
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if not this.enabled or is_beta:
