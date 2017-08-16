@@ -139,7 +139,6 @@ class BackgroundWorker(Thread):
     def closeDatabase(self):
         if not hasattr(self, "c") or not self.c:
             return # database not loaded
-
         self.conn.close()
 
 
@@ -157,11 +156,12 @@ class BackgroundWorker(Thread):
 
     def generateListsFromDatabase(self, x, y, z):
         sql = "SELECT * FROM systems WHERE systems.x BETWEEN ? AND ? AND systems.y BETWEEN ? AND ? AND systems.z BETWEEN ? AND ?"
-        # make sure that the between statements are BETWEEN lower limit AND higher limit
         systems = list()
+        # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.c.execute(sql, (x - self.radius, x + self.radius, y - self.radius, y + self.radius, z - self.radius, z + self.radius))
         for row in self.c.fetchall():
-            _, _, x2, y2, z2, _ = row
+            _, name, x2, y2, z2, _ = row
+            if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= self.radius:
                 eliteSystem = EliteSystem(*row)
