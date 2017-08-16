@@ -332,7 +332,7 @@ def updateUI(event = None):
         this.unconfirmedSystem["text"] = eliteSystem.name
         this.distanceText.grid(row=1, column=0, sticky=tk.W)
         this.distanceValue.grid(row=1, column=1, sticky=tk.W)
-        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance), uncertainty=eliteSystem.getUncertainty())
+        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.getUncertainty())
 
 
 def plugin_close():
