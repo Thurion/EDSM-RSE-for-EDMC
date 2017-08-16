@@ -31,6 +31,7 @@ from threading import Thread
 from Queue import Queue
 
 import Tkinter as tk
+from ttkHyperlinkLabel import HyperlinkLabel
 import myNotebook as nb
 
 from l10n import Locale
@@ -330,6 +331,7 @@ def updateUI(event = None):
         this.unconfirmedText.grid(row=0, column=0, sticky=tk.W)
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
         this.unconfirmedSystem["text"] = eliteSystem.name
+        this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
         this.distanceText.grid(row=1, column=0, sticky=tk.W)
         this.distanceValue.grid(row=1, column=1, sticky=tk.W)
         this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.getUncertainty())
@@ -357,7 +359,7 @@ def plugin_app(parent):
     this.frame.columnconfigure(1, weight=1)
     this.emptyFrame = tk.Frame(this.frame)
     this.unconfirmedText = tk.Label(this.frame, text="Unconfirmed:")
-    this.unconfirmedSystem = tk.Label(this.frame)
+    this.unconfirmedSystem = HyperlinkLabel(frame, compound=tk.RIGHT, popup_copy = True)
     this.distanceText = tk.Label(this.frame, text="Distance:")
     this.distanceValue = tk.Label(this.frame)
     this.lastEventInfo = dict()
@@ -371,4 +373,3 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
         if "StarPos" in entry:
             this.queue.put((BackgroundWorker.JUMPED_SYSTEM, (tuple(entry["StarPos"]), entry["StarSystem"])))
-
