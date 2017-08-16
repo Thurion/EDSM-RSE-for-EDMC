@@ -70,7 +70,8 @@ class EliteSystem(object):
     def getUncertainty(self):
         if PG_SYSTEM_REGEX.match(self.name):
             mc = self.name.split(" ")[-1][:1].lower()
-            return (10 * 2 ** MC_VALUES.get(mc, 0)) / 2
+            # 1.732051 is the length of the vector (1, 1, 1) (sqrt(3)) and is the distance in the worst case
+            return int(((10 * 2 ** MC_VALUES.get(mc, 0)) / 2) * 1.732051) # no need for decimal places here
         return 0
 
     @staticmethod
@@ -251,8 +252,7 @@ class BackgroundWorker(Thread):
 
             if len(closestSystems) > 0:
                 closestSystem = closestSystems[0]
-                # 1.732051 is the length of the vector (1, 1, 1) and is the distance in the worst case
-                if (closestSystem.getUncertainty() * 1.732051) > self.radius and closestSystem not in self.systemListHighUncertainty:
+                if closestSystem.getUncertainty() > self.radius and closestSystem not in self.systemListHighUncertainty:
                     self.systemListHighUncertainty.append(closestSystem)
                 print (closestSystem) # TODO
             else:
