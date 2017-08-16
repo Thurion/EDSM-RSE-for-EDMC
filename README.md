@@ -2,6 +2,7 @@
 
 Elite: Dangerous Star Map - Red Star Eleminator (EDSM-RSE) is a plugin that displays the name and distance to a nearby system, that is on EDSM but is missing coordinates (therefore being displayed as red system)
 
+![Screenshot](img/main_window.png)
 
 ## Installation
 
@@ -14,3 +15,8 @@ You will need to re-start EDMC for it to notice the new plugin.
 ## Usage
 
 No description yet.
+
+## Acknowledgments
+
+* RapidfireCRH came up with the idea originally and was highly involved in the project.
+* The estimated coordinates for the systems were created by [EDTS](https://bitbucket.org/Esvandiary/edts)
