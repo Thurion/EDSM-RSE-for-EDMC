@@ -24,7 +24,6 @@ import json
 import re
 import urllib2
 import webbrowser
-import sqlite3
 import time
 
 from threading import Thread
@@ -37,6 +36,14 @@ import myNotebook as nb
 from l10n import Locale
 from config import config
 import plug
+
+# Workaround for EDMC < 2.37
+import sys
+if os.path.dirname(__file__) not in sys.path:
+    sys.path.append(os.path.dirname(__file__))
+
+import sqlite3
+
 
 if __debug__:
     from traceback import print_exc
