@@ -52,8 +52,6 @@ MC_VALUES = { "a" : 0, "b" : 1, "c" : 2, "d" : 3, "e" : 4, "f" : 5, "g" : 6, "h"
 # keys for dictionary that stores data from the background thread
 # stored in this.lastEventInfo
 BG_SYSTEM = "bg_system"
-BG_DISTANCE = "bg_distance"
-BG_UNCERTAINTY = "bg_uncertainty" # 
 
 this = sys.modules[__name__]	# For holding module globals
 
@@ -250,13 +248,14 @@ class BackgroundWorker(Thread):
                     lowerLimit += EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
                     upperLimit += EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
 
+            this.lastEventInfo = dict()
             if len(closestSystems) > 0:
                 closestSystem = closestSystems[0]
                 if closestSystem.getUncertainty() > self.radius and closestSystem not in self.systemListHighUncertainty:
                     self.systemListHighUncertainty.append(closestSystem)
-                print (closestSystem) # TODO
-            else:
-                pass # TODO remove UI elements
+                this.lastEventInfo[BG_SYSTEM] = closestSystem
+
+            this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
         if starName.lower() in self.systemDict: # arrived in system without coordinates
             # TODO handle dupes
@@ -271,7 +270,9 @@ class BackgroundWorker(Thread):
                 for system in self.systemList:
                     system.updateDistanceToCurrentCommanderPosition(*coordinates)
                 self.systemList.sort(key=lambda l: l.distance)
-            print(self.systemList[0]) # TODO
+            this.lastEventInfo = dict()
+            this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
+            this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
     def run(self):
         self.openDatabase()
@@ -303,8 +304,10 @@ def plugin_start():
 
     return 'EDSM-RSE'
 
-def updateUI():
-    if not this.enabled or not this.lastEventInfo.get(BG_SYSTEM, None):
+
+def updateUI(event = None):
+    eliteSystem = this.lastEventInfo.get(BG_SYSTEM, None)
+    if not this.enabled or not eliteSystem:
         this.unconfirmedText.grid_remove()
         this.unconfirmedSystem.grid_remove()
         this.distanceText.grid_remove()
@@ -314,10 +317,10 @@ def updateUI():
         this.emptyFrame.grid_remove()
         this.unconfirmedText.grid(row=0, column=0, sticky=tk.W)
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
-        this.unconfirmedSystem["text"] = this.lastEventInfo.get(BG_SYSTEM, "")
+        this.unconfirmedSystem["text"] = eliteSystem.name
         this.distanceText.grid(row=1, column=0, sticky=tk.W)
         this.distanceValue.grid(row=1, column=1, sticky=tk.W)
-        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(this.lastEventInfo.get(BG_DISTANCE, 0)), uncertainty=this.lastEventInfo.get(BG_UNCERTAINTY, 0))
+        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance), uncertainty=eliteSystem.getUncertainty())
 
 def plugin_close():
     # Signal thread to close and wait for it
@@ -333,13 +336,14 @@ def prefs_changed():
     this.enabled = checkTransmissionOptions()
 
 def plugin_app(parent):
-    frame = tk.Frame(parent)
-    frame.columnconfigure(1, weight=1)
-    this.emptyFrame = tk.Frame(frame)
-    this.unconfirmedText = tk.Label(frame, text="Unconfirmed:")
-    this.unconfirmedSystem = tk.Label(frame)
-    this.distanceText = tk.Label(frame, text="Distance:")
-    this.distanceValue = tk.Label(frame)
+    this.frame = tk.Frame(parent)
+    this.frame.bind_all("<<EDSM-RSE_BackgroundWorker>>", updateUI)
+    this.frame.columnconfigure(1, weight=1)
+    this.emptyFrame = tk.Frame(this.frame)
+    this.unconfirmedText = tk.Label(this.frame, text="Unconfirmed:")
+    this.unconfirmedSystem = tk.Label(this.frame)
+    this.distanceText = tk.Label(this.frame, text="Distance:")
+    this.distanceValue = tk.Label(this.frame)
     this.lastEventInfo = dict()
     updateUI()
     return frame
