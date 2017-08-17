@@ -358,6 +358,7 @@ def plugin_prefs(parent):
 
 def prefs_changed():
     this.enabled = checkTransmissionOptions()
+    updateUI()
 
 
 def plugin_app(parent):
