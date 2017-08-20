@@ -47,7 +47,7 @@ if __debug__:
 
 VERSION = "0.1 Beta"
 EDSM_UPDATE_INTERVAL = 3600 # 1 hour. used for EliteSystem
-EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 25
+EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 DEFAULT_UPDATE_INTERVAL = 1
 DEFAULT_RADIUS = 1000
 # regex taken from EDTS https://bitbucket.org/Esvandiary/edts
