@@ -132,8 +132,12 @@ class BackgroundWorker(Thread):
         try:
             self.conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite"))
             self.c = self.conn.cursor()
+            self.c.execute("SELECT * from version LIMIT 1")
+            result = self.c.fetchall()
+            this.dbVersion = result[0][0]
         except Exception as e:
-            error = "Database could not be opened"
+            plug.show_error("EDSM-RSE: Database could not be opened")
+            sys.stderr.write("EDSM-RSE: Database could not be opened\n")
 
 
     def closeDatabase(self):
@@ -311,6 +315,7 @@ def checkTransmissionOptions():
 
 
 def plugin_start():
+    this.dbVersion = 0
     this.queue = Queue()
     this.worker = BackgroundWorker(this.queue)
     this.worker.name = "EDSM-RSE Background Worker"
