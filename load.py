@@ -290,7 +290,8 @@ class BackgroundWorker(Thread):
                     system.updateDistanceToCurrentCommanderPosition(*coordinates)
                 self.systemList.sort(key=lambda l: l.distance)
             this.lastEventInfo = dict()
-            this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
+            if len(self.systemList) > 0:
+                this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
             this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
 
