@@ -247,8 +247,9 @@ class BackgroundWorker(Thread):
             lowerLimit = 0
             upperLimit = EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
             
+            closestSystems = list()
             tries = 0
-            while tries < 3: # no do-while loops...
+            while tries < 3 and len(self.systemList) > 0: # no do-while loops...
                 closestSystems = self.systemList[lowerLimit:upperLimit]
                 currentTime = int(time.time())
                 edsmResults = self.queryEDSM(closestSystems)
