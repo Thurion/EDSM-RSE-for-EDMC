@@ -50,6 +50,8 @@ DEFAULT_RADIUS = 1000
 # regex taken from EDTS https://bitbucket.org/Esvandiary/edts
 PG_SYSTEM_REGEX = re.compile(r"^(?P<sector>[\w\s'.()/-]+) (?P<l1>[A-Za-z])(?P<l2>[A-Za-z])-(?P<l3>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<n1>\d+)-)?(?P<n2>\d+)$")
 MC_VALUES = { "a" : 0, "b" : 1, "c" : 2, "d" : 3, "e" : 4, "f" : 5, "g" : 6, "h" : 7}
+OPTIONS_RADIUS = {1 : 100, 2 : 250,  3 : 500, 4 : 750, 5 : 1000, 6: 2000, 7 : 4000}
+OPTIONS_INTERVAL = {0 : 1, 1 : 3, 2 : 5, 3 : 7}
 
 # keys for dictionary that stores data from the background thread
 # stored in this.lastEventInfo
@@ -315,13 +317,20 @@ def checkTransmissionOptions():
 
 def plugin_start():
     this.dbVersion = 0
+    settings = config.getint("EDSM-RSE") or 1 # default setting: radius 0 is currently not selectable
+    this.radius = tk.IntVar(value=(settings & 0x07))
+    this.updateInterval = tk.IntVar(value=((settings >> 3) & 0x03))
+    this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
+
+    this.enabled = checkTransmissionOptions()
+
     this.queue = Queue()
     this.worker = BackgroundWorker(this.queue)
     this.worker.name = "EDSM-RSE Background Worker"
     this.worker.daemon = True
+    this.worker.radius = OPTIONS_RADIUS.get(this.radius.get(), DEFAULT_RADIUS) # number does not translate into radius. this step is required
+    this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
     this.worker.start()
-
-    this.enabled = checkTransmissionOptions()
 
     return 'EDSM-RSE'
 
@@ -368,37 +377,39 @@ def plugin_prefs(parent):
     frame.columnconfigure(1, weight=1)
     nb.Label(frame, text="Search Radius in Ly:").grid(row=0, column=0, padx=PADX, pady=(8,0), sticky=tk.W)
     nb.Label(frame, text="Update Every x Jumps:").grid(row=0, column=1, padx=PADX, pady=(8,0), sticky=tk.W)
-    radius = tk.IntVar()
-    updateInterval = tk.IntVar()
-    radiusOptions = [("100", 1), ("250", 2), ("500", 3), ("750", 4), ("1000", 5), ("2000", 6), ("4000", 7)]
-    intervalOptions = [("1", 0), ("3", 1), ("5", 2), ("7", 3)]
 
     row  = rowInterval = 1
-    for text, value in radiusOptions:
-        nb.Radiobutton(frame, variable=radius, value=value, text=text).grid(row=row, column=0, padx=PADX*4, sticky=tk.EW)
+    values = sorted(OPTIONS_RADIUS.keys())
+    for value in values:
+        nb.Radiobutton(frame, variable=this.radius, value=value, text=str(OPTIONS_RADIUS.get(value, ""))).grid(row=row, column=0, padx=PADX*4, sticky=tk.EW)
         row += 1
     
-    for text, value in intervalOptions:
-        nb.Radiobutton(frame, variable=updateInterval, value=value, text=text).grid(row=rowInterval, column=1, padx=PADX*4, sticky=tk.EW)
+    values = sorted(OPTIONS_INTERVAL.keys())
+    for value in values:
+        nb.Radiobutton(frame, variable=this.updateInterval, value=value, text=str(OPTIONS_INTERVAL.get(value, ""))).grid(row=rowInterval, column=1, padx=PADX*4, sticky=tk.EW)
         rowInterval += 1
     
-
     nb.Label(frame).grid(row=nextRow()) #spacer
-    nb.Checkbutton(frame, variable=copyToClipboard, text="Copy to Clipboard").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Checkbutton(frame, variable=this.clipboard, text="Copy to Clipboard").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
 
     nb.Label(frame).grid(row=nextRow()) # spacer
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX*2, pady=8, sticky=tk.EW)
-
     nb.Label(frame, text="Plugin Version: {}".format(VERSION)).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     nb.Label(frame, text="Database created: {}".format(datetime.fromtimestamp(this.dbVersion))).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
-	# dbDate
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"), url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"), url="http://edts.thargoid.space/", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     return frame
 
 
 def prefs_changed():
+    # see https://github.com/Thurion/EDSM-RSE-for-EDMC/issues/1#issuecomment-322381478 for meaning of bits
+    settings = this.radius.get() | (this.updateInterval.get() << 3) | (this.clipboard.get() << 5)
+    config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
+    this.worker.radius = OPTIONS_RADIUS.get(this.radius.get(), DEFAULT_RADIUS) # number does not translate into radius. this step is required
+    this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
+    this.worker.updateInterval = 0
+
     updateUI()
 
 
