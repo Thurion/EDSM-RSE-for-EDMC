@@ -408,7 +408,7 @@ def prefs_changed():
     this.enabled = checkTransmissionOptions()
     this.worker.radius = OPTIONS_RADIUS.get(this.radius.get(), DEFAULT_RADIUS) # number does not translate into radius. this step is required
     this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
-    this.worker.updateInterval = 0
+    self.counter = 0
 
     updateUI()
 
