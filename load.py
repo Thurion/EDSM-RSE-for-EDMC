@@ -25,11 +25,13 @@ import re
 import urllib2
 import time
 import sqlite3
+from datetime import datetime
 
 from threading import Thread
 from Queue import Queue
 
 import Tkinter as tk
+import ttk
 from ttkHyperlinkLabel import HyperlinkLabel
 import myNotebook as nb
 
@@ -354,7 +356,44 @@ def plugin_close():
 
 
 def plugin_prefs(parent):
+    PADX = 5
+    global row
+    row = 0
+    def nextRow():
+        global row
+        row += 1
+        return row
+
     frame = nb.Frame(parent)
+    frame.columnconfigure(1, weight=1)
+    nb.Label(frame, text="Search Radius in Ly:").grid(row=0, column=0, padx=PADX, pady=(8,0), sticky=tk.W)
+    nb.Label(frame, text="Update Every x Jumps:").grid(row=0, column=1, padx=PADX, pady=(8,0), sticky=tk.W)
+    radius = tk.IntVar()
+    updateInterval = tk.IntVar()
+    radiusOptions = [("100", 1), ("250", 2), ("500", 3), ("750", 4), ("1000", 5), ("2000", 6), ("4000", 7)]
+    intervalOptions = [("1", 0), ("3", 1), ("5", 2), ("7", 3)]
+
+    row  = rowInterval = 1
+    for text, value in radiusOptions:
+        nb.Radiobutton(frame, variable=radius, value=value, text=text).grid(row=row, column=0, padx=PADX*4, sticky=tk.EW)
+        row += 1
+    
+    for text, value in intervalOptions:
+        nb.Radiobutton(frame, variable=updateInterval, value=value, text=text).grid(row=rowInterval, column=1, padx=PADX*4, sticky=tk.EW)
+        rowInterval += 1
+    
+
+    nb.Label(frame).grid(row=nextRow()) #spacer
+    nb.Checkbutton(frame, variable=copyToClipboard, text="Copy to Clipboard").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+
+    nb.Label(frame).grid(row=nextRow()) # spacer
+    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX*2, pady=8, sticky=tk.EW)
+
+    nb.Label(frame, text="Plugin Version: {}".format(VERSION)).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Label(frame, text="Database created: {}".format(datetime.fromtimestamp(this.dbVersion))).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+	# dbDate
+    HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"), url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"), url="http://edts.thargoid.space/", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     return frame
 
 
