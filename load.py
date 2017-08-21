@@ -337,24 +337,24 @@ def plugin_start():
 
 def updateUI(event = None):
     eliteSystem = this.lastEventInfo.get(BG_SYSTEM, None)
-    if not this.enabled or not eliteSystem:
-        this.unconfirmedText.grid_remove()
-        this.unconfirmedSystem.grid_remove()
-        this.distanceText.grid_remove()
-        this.distanceValue.grid_remove()
-        this.emptyFrame.grid(row = 0)
-    else:
-        this.emptyFrame.grid_remove()
-        this.unconfirmedText.grid(row=0, column=0, sticky=tk.W)
+    if this.enabled and eliteSystem:
+        this.errorLabel.grid_remove()
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
         this.unconfirmedSystem["text"] = eliteSystem.name
         this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
-        this.distanceText.grid(row=1, column=0, sticky=tk.W)
-        this.distanceValue.grid(row=1, column=1, sticky=tk.W)
+        this.unconfirmedSystem["state"] = "enabled"
         this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.getUncertainty())
         if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(eliteSystem.name)
+    else:
+        this.unconfirmedSystem.grid_remove()
+        this.errorLabel.grid(row=0, column=1, sticky=tk.W)
+        this.distanceValue["text"] = "?"
+        if not this.enabled:
+            this.errorLabel["text"] = "EDSM/EDDN is disabled"
+        else:
+            this.errorLabel["text"] = "?"
 
 
 def plugin_close():
@@ -417,12 +417,14 @@ def plugin_app(parent):
     this.frame = tk.Frame(parent)
     this.frame.bind_all("<<EDSM-RSE_BackgroundWorker>>", updateUI)
     this.frame.columnconfigure(1, weight=1)
-    this.emptyFrame = tk.Frame(this.frame)
-    this.unconfirmedText = tk.Label(this.frame, text="Unconfirmed:")
+    tk.Label(this.frame, text="Unconfirmed:").grid(row=0, column=0, sticky=tk.W)
     this.unconfirmedSystem = HyperlinkLabel(frame, compound=tk.RIGHT, popup_copy = True)
-    this.distanceText = tk.Label(this.frame, text="Distance:")
+    this.errorLabel = tk.Label(frame)
+    tk.Label(this.frame, text="Distance:").grid(row=1, column=0, sticky=tk.W)
     this.distanceValue = tk.Label(this.frame)
+    this.distanceValue.grid(row=1, column=1, sticky=tk.W)
     this.lastEventInfo = dict()
+
     updateUI()
     return frame
 
