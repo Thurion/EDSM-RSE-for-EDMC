@@ -397,8 +397,8 @@ def plugin_prefs(parent):
         rowInterval += 1
     
     nb.Label(frame).grid(row=nextRow()) #spacer
-    nb.Checkbutton(frame, variable=this.clipboard, text="Copy to Clipboard").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
-    nb.Checkbutton(frame, variable=this.overwrite, text="I use another tool to transmit data to EDDN/EDSM").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Checkbutton(frame, variable=this.clipboard, text="Copy system name to clipboard").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Checkbutton(frame, variable=this.overwrite, text="I use another tool to transmit data to EDSM/EDDN").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
 
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX*2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(VERSION)).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
