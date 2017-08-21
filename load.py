@@ -321,6 +321,7 @@ def plugin_start():
     this.radius = tk.IntVar(value=(settings & 0x07))
     this.updateInterval = tk.IntVar(value=((settings >> 3) & 0x03))
     this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
+    this.overwrite = tk.IntVar(value=((settings >> 6) & 0x01))
 
     this.enabled = checkTransmissionOptions()
 
@@ -337,7 +338,7 @@ def plugin_start():
 
 def updateUI(event = None):
     eliteSystem = this.lastEventInfo.get(BG_SYSTEM, None)
-    if this.enabled and eliteSystem:
+    if (this.enabled or this.overwrite.get()) and eliteSystem:
         this.errorLabel.grid_remove()
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
         this.unconfirmedSystem["text"] = eliteSystem.name
@@ -351,7 +352,7 @@ def updateUI(event = None):
         this.unconfirmedSystem.grid_remove()
         this.errorLabel.grid(row=0, column=1, sticky=tk.W)
         this.distanceValue["text"] = "?"
-        if not this.enabled:
+        if not this.enabled and not this.overwrite.get():
             this.errorLabel["text"] = "EDSM/EDDN is disabled"
         else:
             this.errorLabel["text"] = "?"
@@ -391,8 +392,8 @@ def plugin_prefs(parent):
     
     nb.Label(frame).grid(row=nextRow()) #spacer
     nb.Checkbutton(frame, variable=this.clipboard, text="Copy to Clipboard").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Checkbutton(frame, variable=this.overwrite, text="I use another tool to transmit data to EDDN/EDSM").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
 
-    nb.Label(frame).grid(row=nextRow()) # spacer
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX*2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(VERSION)).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     nb.Label(frame, text="Database created: {}".format(datetime.fromtimestamp(this.dbVersion))).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
@@ -402,8 +403,12 @@ def plugin_prefs(parent):
 
 
 def prefs_changed():
-    # see https://github.com/Thurion/EDSM-RSE-for-EDMC/issues/1#issuecomment-322381478 for meaning of bits
-    settings = this.radius.get() | (this.updateInterval.get() << 3) | (this.clipboard.get() << 5)
+    # bits are as follows:
+    # 0-3 radius
+    # 4-5 interval
+    # 6: copy to clipboard
+    # 7: overwrite enabled status
+    settings = this.radius.get() | (this.updateInterval.get() << 3) | (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
     config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
     this.worker.radius = OPTIONS_RADIUS.get(this.radius.get(), DEFAULT_RADIUS) # number does not translate into radius. this step is required
