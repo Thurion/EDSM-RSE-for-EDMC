@@ -56,6 +56,7 @@ OPTIONS_INTERVAL = {0 : 1, 1 : 3, 2 : 5, 3 : 7}
 # keys for dictionary that stores data from the background thread
 # stored in this.lastEventInfo
 BG_SYSTEM = "bg_system"
+BG_MESSAGE = "bg_message"
 
 this = sys.modules[__name__]	# For holding module globals
 
@@ -272,6 +273,8 @@ class BackgroundWorker(Thread):
                 if closestSystem.getUncertainty() > self.radius and closestSystem not in self.systemListHighUncertainty:
                     self.systemListHighUncertainty.append(closestSystem)
                 this.lastEventInfo[BG_SYSTEM] = closestSystem
+            else:
+                this.lastEventInfo[BG_MESSAGE] = "No system in range"
 
             this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
@@ -291,6 +294,8 @@ class BackgroundWorker(Thread):
             this.lastEventInfo = dict()
             if len(self.systemList) > 0:
                 this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
+            else:
+                this.lastEventInfo[BG_MESSAGE] = "No system in range"
             this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
 
@@ -338,6 +343,7 @@ def plugin_start():
 
 def updateUI(event = None):
     eliteSystem = this.lastEventInfo.get(BG_SYSTEM, None)
+    message = this.lastEventInfo.get(BG_MESSAGE, None)
     if (this.enabled or this.overwrite.get()) and eliteSystem:
         this.errorLabel.grid_remove()
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
@@ -355,7 +361,7 @@ def updateUI(event = None):
         if not this.enabled and not this.overwrite.get():
             this.errorLabel["text"] = "EDSM/EDDN is disabled"
         else:
-            this.errorLabel["text"] = "?"
+            this.errorLabel["text"] = message or "?"
 
 
 def plugin_close():
