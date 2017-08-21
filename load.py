@@ -441,7 +441,7 @@ def plugin_app(parent):
 
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
-    if not this.enabled or is_beta:
+    if not this.enabled and not this.overwrite.get() or is_beta:
         return # nothing to do here
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
         if "StarPos" in entry:
