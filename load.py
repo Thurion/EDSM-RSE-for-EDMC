@@ -352,7 +352,7 @@ def updateUI(event = None):
         this.distanceText.grid(row=1, column=0, sticky=tk.W)
         this.distanceValue.grid(row=1, column=1, sticky=tk.W)
         this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.getUncertainty())
-        if this.copyToClipboard:
+        if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(eliteSystem.name)
 
@@ -423,7 +423,6 @@ def plugin_app(parent):
     this.distanceText = tk.Label(this.frame, text="Distance:")
     this.distanceValue = tk.Label(this.frame)
     this.lastEventInfo = dict()
-    this.copyToClipboard = True
     updateUI()
     return frame
 
