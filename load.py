@@ -317,7 +317,7 @@ def checkTransmissionOptions():
 
 def plugin_start():
     this.dbVersion = 0
-    settings = config.getint("EDSM-RSE") or 1 # default setting: radius 0 is currently not selectable
+    settings = config.getint("EDSM-RSE") or 5 # default setting: radius 0 is currently not selectable
     this.radius = tk.IntVar(value=(settings & 0x07))
     this.updateInterval = tk.IntVar(value=((settings >> 3) & 0x03))
     this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
