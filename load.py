@@ -206,9 +206,9 @@ class BackgroundWorker(Thread):
 
 
     def queryEDSM(self, systems):
-        """ returns a set of systems names in lower case with known coordinates """
+        """ returns a set of systems names in lower case with unknown coordinates """
         # TODO handle dupes
-        edsmUrl = "https://www.edsm.net/api-v1/systems?onlyKnownCoordinates=1&"
+        edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
         params = list()
         currentTime = int(time.time())
         systemsToUpdateTime = list()
@@ -255,10 +255,10 @@ class BackgroundWorker(Thread):
                 edsmResults = self.queryEDSM(closestSystems)
                 if len(edsmResults) > 0:
                     # remove systems with coordinates
-                    systemsWithCoordinates = filter(lambda s: s.name.lower() in edsmResults, closestSystems)
+                    systemsWithCoordinates = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
                     self.removeSystemsFromDatabase(systemsWithCoordinates)
                     self.removeSystems(systemsWithCoordinates)
-                    closestSystems = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
+                    closestSystems = filter(lambda s: s.name.lower() in edsmResults, closestSystems)
                 if len(closestSystems) > 0:
                     # there are still systems in the results -> stop here
                     break
