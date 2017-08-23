@@ -350,7 +350,7 @@ def updateUI(event = None):
         this.unconfirmedSystem["text"] = eliteSystem.name
         this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
-        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.getUncertainty())
+        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.getUncertainty() or "?")
         if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(eliteSystem.name)
