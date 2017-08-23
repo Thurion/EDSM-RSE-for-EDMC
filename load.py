@@ -42,7 +42,7 @@ import plug
 if __debug__:
     from traceback import print_exc
 
-VERSION = "1.0 Beta 4"
+VERSION = "1.0 Beta 5"
 EDSM_UPDATE_INTERVAL = 3600 # 1 hour. used for EliteSystem
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 DEFAULT_UPDATE_INTERVAL = 1
