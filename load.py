@@ -212,10 +212,13 @@ class BackgroundWorker(Thread):
         params = list()
         currentTime = int(time.time())
         systemsToUpdateTime = list()
+        names = set()
         for system in systems:
             if (currentTime - system.updated_at) > EDSM_UPDATE_INTERVAL:
                 params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
                 systemsToUpdateTime.append(system)
+            else:
+                names.add(system.name.lower())
         edsmUrl += "&".join(params)
         if __debug__: print("querying EDSM for {} systems".format(len(params)))
         if len(params) > 0:
@@ -223,7 +226,6 @@ class BackgroundWorker(Thread):
                 url = urllib2.urlopen(edsmUrl, timeout=5)
                 response = url.read()
                 edsmJson = json.loads(response)
-                names = set()
                 for entry in edsmJson:
                     names.add(entry["name"].lower())
                 self.updateTimeForSystems(systemsToUpdateTime, currentTime)
