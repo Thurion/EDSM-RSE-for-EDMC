@@ -31,6 +31,14 @@ A few settings can be configured:
 
 Using this plugin only makes sense when the system locations are transmitted via EDDN or directly to EDSM. The plugin won't do anything if neither one is turned on. To overwrite that behavior, check that another tool is used to transmit the data.
 
+## Manual Database Update
+
+1. Download the new *systemsWithoutCoordinates.sqlite* from [Rapdifire's Dropbox](https://www.dropbox.com/sh/8m8o5ondnjctovs/AACaB0qr4j0mU3Vd9FrTi1bna?dl=0)
+2. Open the EDSM-RSE folder within plugins as described above
+3. Close EDMC
+4. Move the downloaded file and overwrite the existing one
+5. Start EDMC again
+
 ## Acknowledgments
 
 * RapidfireCRH came up with the idea originally and was highly involved in the project.
