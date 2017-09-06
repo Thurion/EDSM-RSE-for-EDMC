@@ -33,7 +33,7 @@ Using this plugin only makes sense when the system locations are transmitted via
 
 ## Manual Database Update
 
-1. Download the new *systemsWithoutCoordinates.sqlite* from [Rapdifire's Dropbox](https://www.dropbox.com/sh/8m8o5ondnjctovs/AACaB0qr4j0mU3Vd9FrTi1bna?dl=0)
+1. Download the new *systemsWithoutCoordinates.sqlite* from [Rapidfire's Dropbox](https://www.dropbox.com/sh/8m8o5ondnjctovs/AACaB0qr4j0mU3Vd9FrTi1bna?dl=0)
 2. Open the EDSM-RSE folder within plugins as described above
 3. Close EDMC
 4. Move the downloaded file and overwrite the existing one
