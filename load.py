@@ -325,7 +325,6 @@ def checkTransmissionOptions():
 def plugin_start():
     this.dbVersion = 0
     settings = config.getint("EDSM-RSE") or 5 # default setting: radius 0 is currently not selectable
-    this.radius = tk.IntVar(value=(settings & 0x07))
     this.updateInterval = tk.IntVar(value=((settings >> 3) & 0x03))
     this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
     this.overwrite = tk.IntVar(value=((settings >> 6) & 0x01))
@@ -336,7 +335,7 @@ def plugin_start():
     this.worker = BackgroundWorker(this.queue)
     this.worker.name = "EDSM-RSE Background Worker"
     this.worker.daemon = True
-    this.worker.radius = OPTIONS_RADIUS.get(this.radius.get(), DEFAULT_RADIUS) # number does not translate into radius. this step is required
+    this.worker.radius = DEFAULT_RADIUS # number does not translate into radius. this step is required
     this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
     this.worker.start()
 
@@ -383,20 +382,14 @@ def plugin_prefs(parent):
         return row
 
     frame = nb.Frame(parent)
-    frame.columnconfigure(1, weight=1)
-    nb.Label(frame, text="Search Radius in Ly:").grid(row=0, column=0, padx=PADX, pady=(8,0), sticky=tk.W)
-    nb.Label(frame, text="Update Every x Jumps:").grid(row=0, column=1, padx=PADX, pady=(8,0), sticky=tk.W)
+    frame.columnconfigure(0, weight=1)
+    nb.Label(frame, text="Update Every x Jumps:").grid(row=0, column=0, padx=PADX, pady=(8,0), sticky=tk.W)
 
-    row  = rowInterval = 1
-    values = sorted(OPTIONS_RADIUS.keys())
-    for value in values:
-        nb.Radiobutton(frame, variable=this.radius, value=value, text=str(OPTIONS_RADIUS.get(value, ""))).grid(row=row, column=0, padx=PADX*4, sticky=tk.EW)
-        row += 1
-    
+    row = 1    
     values = sorted(OPTIONS_INTERVAL.keys())
     for value in values:
-        nb.Radiobutton(frame, variable=this.updateInterval, value=value, text=str(OPTIONS_INTERVAL.get(value, ""))).grid(row=rowInterval, column=1, padx=PADX*4, sticky=tk.EW)
-        rowInterval += 1
+        nb.Radiobutton(frame, variable=this.updateInterval, value=value, text=str(OPTIONS_INTERVAL.get(value, ""))).grid(row=row, column=0, padx=PADX*4, sticky=tk.EW)
+        row += 1
     
     nb.Label(frame).grid(row=nextRow()) #spacer
     nb.Checkbutton(frame, variable=this.clipboard, text="Copy system name to clipboard").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
@@ -412,14 +405,14 @@ def plugin_prefs(parent):
 
 def prefs_changed():
     # bits are as follows:
-    # 0-3 radius
+    # 0-3 radius # not used anymore
     # 4-5 interval
     # 6: copy to clipboard
     # 7: overwrite enabled status
-    settings = this.radius.get() | (this.updateInterval.get() << 3) | (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
+    settings = (this.updateInterval.get() << 3) | (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
     config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
-    this.worker.radius = OPTIONS_RADIUS.get(this.radius.get(), DEFAULT_RADIUS) # number does not translate into radius. this step is required
+    this.worker.radius = DEFAULT_RADIUS # number does not translate into radius. this step is required
     this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
     this.worker.counter = 0
 
