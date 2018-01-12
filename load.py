@@ -241,8 +241,27 @@ class BackgroundWorker(Thread):
         if not hasattr(self, "c") or not self.c:
             return # no database. do nothing
 
-        self.counter += 1
         tick = self.counter % self.updateInterval == 0
+        if starName.lower() in self.systemDict: # arrived in system without coordinates
+            # TODO handle dupes
+            if __debug__: print("arrived in {}".format(starName))
+            system = self.systemDict.get(starName.lower(), None)
+            if system:
+                self.removeSystems([system])
+
+            if not tick:
+                # distances need to be recalculated
+                for system in self.systemList:
+                    system.updateDistanceToCurrentCommanderPosition(*coordinates)
+                self.systemList.sort(key=lambda l: l.distance)
+            this.lastEventInfo = dict()
+            if len(self.systemList) > 0:
+                this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
+            else:
+                this.lastEventInfo[BG_MESSAGE] = "No system in range"
+            this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
+
+        self.counter += 1
         if tick: 
             if __debug__: print("interval tick")
             # interval -> update systems
@@ -278,25 +297,6 @@ class BackgroundWorker(Thread):
             else:
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
 
-            this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
-
-        if starName.lower() in self.systemDict: # arrived in system without coordinates
-            # TODO handle dupes
-            if __debug__: print("arrived in {}".format(starName))
-            system = self.systemDict.get(starName.lower(), None)
-            if system:
-                self.removeSystems([system])
-
-            if not tick:
-                # distances need to be recalculated
-                for system in self.systemList:
-                    system.updateDistanceToCurrentCommanderPosition(*coordinates)
-                self.systemList.sort(key=lambda l: l.distance)
-            this.lastEventInfo = dict()
-            if len(self.systemList) > 0:
-                this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
-            else:
-                this.lastEventInfo[BG_MESSAGE] = "No system in range"
             this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
 
