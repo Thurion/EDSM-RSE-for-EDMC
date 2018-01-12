@@ -223,7 +223,7 @@ class BackgroundWorker(Thread):
         if __debug__: print("querying EDSM for {} systems".format(len(params)))
         if len(params) > 0:
             try:
-                url = urllib2.urlopen(edsmUrl, timeout=5)
+                url = urllib2.urlopen(edsmUrl, timeout=10)
                 response = url.read()
                 edsmJson = json.loads(response)
                 for entry in edsmJson:
