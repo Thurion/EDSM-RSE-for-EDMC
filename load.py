@@ -430,7 +430,7 @@ def prefs_changed():
     settings = (this.updateInterval.get() << 3) | (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
     config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
-    this.worker.radius =  DEFAULT_RADIUS
+    this.worker.radius = DEFAULT_RADIUS
     this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
     this.worker.counter = 0
 
@@ -459,3 +459,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
         if "StarPos" in entry:
             this.queue.put((BackgroundWorker.JUMPED_SYSTEM, (tuple(entry["StarPos"]), entry["StarSystem"])))
+    if entry["event"] == "Resurrect":
+        # reset radius in case someone died in an area where there are not many available stars (meaning very large radius)
+        this.worker.radius = DEFAULT_RADIUS
