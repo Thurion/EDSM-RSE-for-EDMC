@@ -46,7 +46,9 @@ VERSION = "1.0"
 EDSM_UPDATE_INTERVAL = 3600 # 1 hour. used for EliteSystem
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 DEFAULT_UPDATE_INTERVAL = 1
-DEFAULT_RADIUS = 1000
+DEFAULT_RADIUS = 3 # key for radius, see OPTIONS_RADIUS for the dictionary
+RADIUS_ADJUSTMENT_INCREASE = 15 # increase radius if at most this amount of systems were found
+RADIUS_ADJUSTMENT_DECREASE = 100 # decrease the radius if at least this amount of systems were found
 # regex taken from EDTS https://bitbucket.org/Esvandiary/edts
 PG_SYSTEM_REGEX = re.compile(r"^(?P<sector>[\w\s'.()/-]+) (?P<l1>[A-Za-z])(?P<l2>[A-Za-z])-(?P<l3>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<n1>\d+)-)?(?P<n2>\d+)$")
 MC_VALUES = { "a" : 0, "b" : 1, "c" : 2, "d" : 3, "e" : 4, "f" : 5, "g" : 6, "h" : 7}
@@ -124,6 +126,19 @@ class BackgroundWorker(Thread):
         self.systemDict = dict()
 
 
+    def adjustRadius(self, numberOfSystems):
+        if numberOfSystems <= RADIUS_ADJUSTMENT_INCREASE:
+            self.radius += 1
+            if self.radius > len(OPTIONS_RADIUS):
+                self.radius = len(OPTIONS_RADIUS)
+            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, OPTIONS_RADIUS.get(self.radius)))
+        elif numberOfSystems >= RADIUS_ADJUSTMENT_DECREASE:
+            self.radius -= 1
+            if self.radius < 1:
+                self.radius = 1
+            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, OPTIONS_RADIUS.get(self.radius)))
+
+
     def openDatabase(self):
         if not os.path.exists(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite")):
             plug.show_error("EDSM-RSE: Database could not be opened")
@@ -162,18 +177,19 @@ class BackgroundWorker(Thread):
         sql = "SELECT * FROM systems WHERE systems.x BETWEEN ? AND ? AND systems.y BETWEEN ? AND ? AND systems.z BETWEEN ? AND ?"
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
-        self.c.execute(sql, (x - self.radius, x + self.radius, y - self.radius, y + self.radius, z - self.radius, z + self.radius))
+        self.c.execute(sql, (x - OPTIONS_RADIUS[self.radius], x + OPTIONS_RADIUS[self.radius], y - OPTIONS_RADIUS[self.radius], y + OPTIONS_RADIUS[self.radius], z - OPTIONS_RADIUS[self.radius], z + OPTIONS_RADIUS[self.radius]))
         for row in self.c.fetchall():
             _, name, x2, y2, z2, _ = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
-            if distance <= self.radius:
+            if distance <= OPTIONS_RADIUS[self.radius]:
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
                 systems.append(eliteSystem)
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
+        self.adjustRadius(len(self.systemList))
         self.systemDict = dict()
         for system in self.systemList:
             self.systemDict.setdefault(system.name.lower(), system)
@@ -191,12 +207,14 @@ class BackgroundWorker(Thread):
 
 
     def removeSystemsFromDatabase(self, systems):
+        # TODO change to list in memory
         for system in systems:
             self.c.execute("DELETE FROM systems WHERE systems.id = ?", (system.id,))
         self.conn.commit()
 
 
     def removeSystems(self, systems):
+        # TODO change to list in memory
         if __debug__: print("removing {} systems".format(len(systems)))
         self.systemList = filter(lambda x: x not in systems, self.systemList)
         self.systemListHighUncertainty = filter(lambda x: x not in systems, self.systemListHighUncertainty)
@@ -272,7 +290,7 @@ class BackgroundWorker(Thread):
             this.lastEventInfo = dict()
             if len(closestSystems) > 0:
                 closestSystem = closestSystems[0]
-                if closestSystem.getUncertainty() > self.radius and closestSystem not in self.systemListHighUncertainty:
+                if closestSystem.getUncertainty() > OPTIONS_RADIUS[self.radius] and closestSystem not in self.systemListHighUncertainty:
                     self.systemListHighUncertainty.append(closestSystem)
                 this.lastEventInfo[BG_SYSTEM] = closestSystem
             else:
@@ -335,7 +353,7 @@ def plugin_start():
     this.worker = BackgroundWorker(this.queue)
     this.worker.name = "EDSM-RSE Background Worker"
     this.worker.daemon = True
-    this.worker.radius = DEFAULT_RADIUS # number does not translate into radius. this step is required
+    this.worker.radius = DEFAULT_RADIUS
     this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
     this.worker.start()
 
@@ -412,7 +430,7 @@ def prefs_changed():
     settings = (this.updateInterval.get() << 3) | (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
     config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
-    this.worker.radius = DEFAULT_RADIUS # number does not translate into radius. this step is required
+    this.worker.radius =  DEFAULT_RADIUS
     this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
     this.worker.counter = 0
 
