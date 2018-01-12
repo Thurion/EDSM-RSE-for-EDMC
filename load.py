@@ -45,7 +45,7 @@ if __debug__:
 VERSION = "1.0"
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 DEFAULT_UPDATE_INTERVAL = 1
-DEFAULT_RADIUS = 3 # key for radius, see OPTIONS_RADIUS for the dictionary
+DEFAULT_RADIUS = 2 # key for radius, see OPTIONS_RADIUS for the dictionary
 RADIUS_ADJUSTMENT_INCREASE = 15 # increase radius if at most this amount of systems were found
 RADIUS_ADJUSTMENT_DECREASE = 100 # decrease the radius if at least this amount of systems were found
 # regex taken from EDTS https://bitbucket.org/Esvandiary/edts
