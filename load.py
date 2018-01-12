@@ -124,6 +124,7 @@ class BackgroundWorker(Thread):
         self.systemList = list()
         self.systemListHighUncertainty = list()
         self.systemDict = dict()
+        self.filter = set() # systems that already have coordinates
 
 
     def adjustRadius(self, numberOfSystems):
@@ -186,6 +187,9 @@ class BackgroundWorker(Thread):
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
                 systems.append(eliteSystem)
+        
+        # filter out systems that already have coordinates
+        systems = filter(lambda x: x not in self.filter, systems)        
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
@@ -206,21 +210,14 @@ class BackgroundWorker(Thread):
             self.conn.commit() # commit only if the list contained items
 
 
-    def removeSystemsFromDatabase(self, systems):
-        # TODO change to list in memory
-        for system in systems:
-            self.c.execute("DELETE FROM systems WHERE systems.id = ?", (system.id,))
-        self.conn.commit()
-
-
     def removeSystems(self, systems):
-        # TODO change to list in memory
-        if __debug__: print("removing {} systems".format(len(systems)))
+        if __debug__: print("adding {} systems to removal filter".format(len(systems)))
         self.systemList = filter(lambda x: x not in systems, self.systemList)
         self.systemListHighUncertainty = filter(lambda x: x not in systems, self.systemListHighUncertainty)
 
         for system in systems:
             self.systemDict.pop(system.name.lower(), None)
+            self.filter.add(system)
 
 
     def queryEDSM(self, systems):
@@ -276,7 +273,6 @@ class BackgroundWorker(Thread):
                 if len(edsmResults) > 0:
                     # remove systems with coordinates
                     systemsWithCoordinates = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
-                    self.removeSystemsFromDatabase(systemsWithCoordinates)
                     self.removeSystems(systemsWithCoordinates)
                     closestSystems = filter(lambda s: s.name.lower() in edsmResults, closestSystems)
                 if len(closestSystems) > 0:
@@ -303,7 +299,6 @@ class BackgroundWorker(Thread):
             if __debug__: print("arrived in {}".format(starName))
             system = self.systemDict.get(starName.lower(), None)
             if system:
-                self.removeSystemsFromDatabase([system])
                 self.removeSystems([system])
 
             if not tick:
