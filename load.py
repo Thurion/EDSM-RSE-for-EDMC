@@ -43,7 +43,6 @@ if __debug__:
     from traceback import print_exc
 
 VERSION = "1.0"
-EDSM_UPDATE_INTERVAL = 3600 # 1 hour. used for EliteSystem
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 DEFAULT_UPDATE_INTERVAL = 1
 DEFAULT_RADIUS = 3 # key for radius, see OPTIONS_RADIUS for the dictionary
@@ -201,15 +200,6 @@ class BackgroundWorker(Thread):
             self.systemDict.setdefault(system.name.lower(), system)
 
 
-    def updateTimeForSystems(self, systems, t):
-        if __debug__: print("updateTimeForSystems for {} systems".format(len(systems)))
-        for system in systems:
-            system.updated_at = t
-            self.c.execute("UPDATE systems SET last_checked = ? WHERE systems.id = ?", (t, system.id))
-        if (systems):
-            self.conn.commit() # commit only if the list contained items
-
-
     def removeSystems(self, systems):
         if __debug__: print("adding {} systems to removal filter".format(len(systems)))
         self.systemList = filter(lambda x: x not in systems, self.systemList)
@@ -225,16 +215,11 @@ class BackgroundWorker(Thread):
         # TODO handle dupes
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
         params = list()
-        currentTime = int(time.time())
-        systemsToUpdateTime = list()
         names = set()
-        for system in systems:
-            if (currentTime - system.updated_at) > EDSM_UPDATE_INTERVAL:
-                params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
-                systemsToUpdateTime.append(system)
-            else:
-                names.add(system.name.lower())
+        for system in systems:            
+            params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
         edsmUrl += "&".join(params)
+
         if __debug__: print("querying EDSM for {} systems".format(len(params)))
         if len(params) > 0:
             try:
@@ -243,7 +228,6 @@ class BackgroundWorker(Thread):
                 edsmJson = json.loads(response)
                 for entry in edsmJson:
                     names.add(entry["name"].lower())
-                self.updateTimeForSystems(systemsToUpdateTime, currentTime)
                 return names
             except:
                # ignore. the EDSM call is not required
