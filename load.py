@@ -201,6 +201,8 @@ class BackgroundWorker(Thread):
 
 
     def removeSystems(self, systems):
+        if len(systems) == 0:
+            return # nothing to do
         if __debug__: print("adding {} systems to removal filter".format(len(systems)))
         self.systemList = filter(lambda x: x not in systems, self.systemList)
         self.systemListHighUncertainty = filter(lambda x: x not in systems, self.systemListHighUncertainty)
