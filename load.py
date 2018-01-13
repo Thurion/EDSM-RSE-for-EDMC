@@ -242,6 +242,7 @@ class BackgroundWorker(Thread):
             return # no database. do nothing
 
         tick = self.counter % self.updateInterval == 0
+        self.counter += 1
         if starName.lower() in self.systemDict: # arrived in system without coordinates
             # TODO handle dupes
             if __debug__: print("arrived in {}".format(starName))
@@ -261,7 +262,6 @@ class BackgroundWorker(Thread):
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
             this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
-        self.counter += 1
         if tick: 
             if __debug__: print("interval tick")
             # interval -> update systems
