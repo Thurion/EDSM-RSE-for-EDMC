@@ -214,7 +214,7 @@ class BackgroundWorker(Thread):
             self.filter.add(system)
 
 
-def queryEDSM(self, systems):
+    def queryEDSM(self, systems):
         """ returns a set of systems names in lower case with unknown coordinates """
         # TODO handle dupes
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
@@ -236,9 +236,9 @@ def queryEDSM(self, systems):
             except:
                # ignore. the EDSM call is not required
                if __debug__: print_exc()
-return set()
+    return set()
 
-def handleJumpedSystem(self, coordinates, starName):
+    def handleJumpedSystem(self, coordinates, starName):
         if not hasattr(self, "c") or not self.c:
             return # no database. do nothing
 
