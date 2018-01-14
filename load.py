@@ -24,7 +24,7 @@ import json
 import re
 import urllib2
 import time
-import sqlite3
+import psycopg2
 from datetime import datetime
 
 from threading import Thread
@@ -140,16 +140,17 @@ class BackgroundWorker(Thread):
 
 
     def openDatabase(self):
-        if not os.path.exists(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite")):
-            plug.show_error("EDSM-RSE: Database could not be opened")
-            sys.stderr.write("EDSM-RSE: Database could not be opened\n")
-            return
+#        if not os.path.exists(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite")):
+#            plug.show_error("EDSM-RSE: Database could not be opened")
+#            sys.stderr.write("EDSM-RSE: Database could not be opened\n")
+#            return
         try:
-            self.conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite"))
+            self.conn = psycopg2.connect(host='185.80.92.171', port=5432, dbname='edmc_rse_db', user='edmc_rse_user', password='asdfplkjiouw3875948zksmdxnf')
+            self.conn.autocommit = True
             self.c = self.conn.cursor()
-            self.c.execute("SELECT * from version LIMIT 1")
+            self.c.execute("SELECT date,id from version WHERE id=1")
             result = self.c.fetchall()
-            this.dbVersion = result[0][0]
+            this.dbVersion = float(result[0][0])
         except Exception as e:
             plug.show_error("EDSM-RSE: Database could not be opened")
             sys.stderr.write("EDSM-RSE: Database could not be opened\n")
@@ -166,7 +167,8 @@ class BackgroundWorker(Thread):
             return # database not loaded
         self.realNameToPg = dict()
         self.pgToRealName = dict()
-        for row in self.c.execute("SELECT * FROM duplicates"):
+        self.c.execute("SELECT * FROM duplicates")
+        for row in self.c.fetchall():
             _, realName, pgName = row
             self.realNameToPg.setdefault(realName.lower(), list())
             self.realNameToPg.get(realName.lower(), list()).append(pgName)
@@ -174,7 +176,7 @@ class BackgroundWorker(Thread):
 
 
     def generateListsFromDatabase(self, x, y, z):
-        sql = "SELECT * FROM systems WHERE systems.x BETWEEN ? AND ? AND systems.y BETWEEN ? AND ? AND systems.z BETWEEN ? AND ?"
+        sql = "SELECT * FROM systems WHERE systems.x BETWEEN %s AND %s AND systems.y BETWEEN %s AND %s AND systems.z BETWEEN %s AND %s"
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.c.execute(sql, (x - OPTIONS_RADIUS[self.radius], x + OPTIONS_RADIUS[self.radius], y - OPTIONS_RADIUS[self.radius], y + OPTIONS_RADIUS[self.radius], z - OPTIONS_RADIUS[self.radius], z + OPTIONS_RADIUS[self.radius]))
@@ -186,7 +188,7 @@ class BackgroundWorker(Thread):
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
                 systems.append(eliteSystem)
-        
+ 
         # filter out systems that already have coordinates
         systems = filter(lambda x: x not in self.filter, systems)        
         systems.sort(key=lambda l: l.distance)
@@ -217,19 +219,25 @@ class BackgroundWorker(Thread):
         # TODO handle dupes
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
         params = list()
+        currentTime = int(time.time())
+        systemsToUpdateTime = list()
         names = set()
-        for system in systems:            
-            params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
+        for system in systems:
+            if (currentTime - system.updated_at) > EDSM_UPDATE_INTERVAL:
+                params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
+                systemsToUpdateTime.append(system)
+            else:
+                names.add(system.name.lower())
         edsmUrl += "&".join(params)
-
         if __debug__: print("querying EDSM for {} systems".format(len(params)))
         if len(params) > 0:
             try:
-                url = urllib2.urlopen(edsmUrl, timeout=10)
+                url = urllib2.urlopen(edsmUrl, timeout=5)
                 response = url.read()
                 edsmJson = json.loads(response)
                 for entry in edsmJson:
                     names.add(entry["name"].lower())
+                self.updateTimeForSystems(systemsToUpdateTime, currentTime)
                 return names
             except:
                # ignore. the EDSM call is not required
