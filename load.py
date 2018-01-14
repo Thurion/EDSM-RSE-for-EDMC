@@ -42,7 +42,7 @@ import plug
 if __debug__:
     from traceback import print_exc
 
-VERSION = "1.0"
+VERSION = "1.1"
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 DEFAULT_UPDATE_INTERVAL = 1
 DEFAULT_RADIUS = 2 # key for radius, see OPTIONS_RADIUS for the dictionary
