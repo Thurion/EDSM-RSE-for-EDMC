@@ -43,6 +43,7 @@ if __debug__:
     from traceback import print_exc
 
 VERSION = "1.0"
+EDSM_UPDATE_INTERVAL = 3600 # 1 hour. used for EliteSystem
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 DEFAULT_UPDATE_INTERVAL = 1
 DEFAULT_RADIUS = 2 # key for radius, see OPTIONS_RADIUS for the dictionary
