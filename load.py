@@ -43,7 +43,6 @@ if __debug__:
     from traceback import print_exc
 
 VERSION = "1.0"
-EDSM_UPDATE_INTERVAL = 3600 # 1 hour. used for EliteSystem
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 DEFAULT_UPDATE_INTERVAL = 1
 DEFAULT_RADIUS = 2 # key for radius, see OPTIONS_RADIUS for the dictionary
@@ -215,38 +214,31 @@ class BackgroundWorker(Thread):
             self.filter.add(system)
 
 
-    def queryEDSM(self, systems):
+def queryEDSM(self, systems):
         """ returns a set of systems names in lower case with unknown coordinates """
         # TODO handle dupes
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
         params = list()
-        currentTime = int(time.time())
-        systemsToUpdateTime = list()
         names = set()
-        for system in systems:
-            if (currentTime - system.updated_at) > EDSM_UPDATE_INTERVAL:
-                params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
-                systemsToUpdateTime.append(system)
-            else:
-                names.add(system.name.lower())
+        for system in systems:            
+            params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
         edsmUrl += "&".join(params)
+
         if __debug__: print("querying EDSM for {} systems".format(len(params)))
         if len(params) > 0:
             try:
-                url = urllib2.urlopen(edsmUrl, timeout=5)
+                url = urllib2.urlopen(edsmUrl, timeout=10)
                 response = url.read()
                 edsmJson = json.loads(response)
                 for entry in edsmJson:
                     names.add(entry["name"].lower())
-                self.updateTimeForSystems(systemsToUpdateTime, currentTime)
                 return names
             except:
                # ignore. the EDSM call is not required
                if __debug__: print_exc()
-        return set()
+return set()
 
-
-    def handleJumpedSystem(self, coordinates, starName):
+def handleJumpedSystem(self, coordinates, starName):
         if not hasattr(self, "c") or not self.c:
             return # no database. do nothing
 
