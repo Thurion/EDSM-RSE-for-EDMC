@@ -236,7 +236,7 @@ class BackgroundWorker(Thread):
             except:
                # ignore. the EDSM call is not required
                if __debug__: print_exc()
-    return set()
+        return set()
 
     def handleJumpedSystem(self, coordinates, starName):
         if not hasattr(self, "c") or not self.c:
