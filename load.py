@@ -241,8 +241,8 @@ class BackgroundWorker(Thread):
         if not hasattr(self, "c") or not self.c:
             return # no database. do nothing
 
-        tick = self.counter % self.updateInterval == 0
         self.counter += 1
+        tick = self.counter % self.updateInterval == 0
         if starName.lower() in self.systemDict: # arrived in system without coordinates
             # TODO handle dupes
             if __debug__: print("arrived in {}".format(starName))
