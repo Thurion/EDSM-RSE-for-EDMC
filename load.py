@@ -42,7 +42,7 @@ import plug
 if __debug__:
     from traceback import print_exc
 
-VERSION = "1.0"
+VERSION = "1.1"
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 DEFAULT_UPDATE_INTERVAL = 1
 DEFAULT_RADIUS = 2 # key for radius, see OPTIONS_RADIUS for the dictionary
@@ -397,7 +397,7 @@ def plugin_prefs(parent):
 
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX*2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(VERSION)).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
-    nb.Label(frame, text="Database created: {}".format(datetime.fromtimestamp(this.dbVersion))).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Label(frame, text="Database updated: {}".format(datetime.fromtimestamp(this.dbVersion))).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"), url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"), url="http://edts.thargoid.space/", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     return frame
