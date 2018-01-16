@@ -19,8 +19,6 @@ You will need to re-start EDMC for it to notice the new plugin.
 ## Usage
 
 A few settings can be configured:
-* The radius
-    * Set the radius to 1000 Ly or less in regions where with many systems without coordinates. If you don't get any results, choose a larger radius. But be aware that a radius of 4000 in a region of many systems without coordinates will result in poorer performance of the plugin as there are more distances have to calculated and stored in memory.
 * How often the plugin will check for systems without coordinates
     * 1 means it will check for systems after every jump and 7 will do so only every 7 jumps. A few things happen on an update: 
 	    1. Get systems that match the radius from the local database
@@ -30,14 +28,6 @@ A few settings can be configured:
 * Whether to copy the system name to clipboard or not
 
 Using this plugin only makes sense when the system locations are transmitted via EDDN or directly to EDSM. The plugin won't do anything if neither one is turned on. To overwrite that behavior, check that another tool is used to transmit the data.
-
-## Manual Database Update
-
-1. Download the new *systemsWithoutCoordinates.sqlite* from [Rapidfire's Dropbox](https://www.dropbox.com/sh/8m8o5ondnjctovs/AACaB0qr4j0mU3Vd9FrTi1bna?dl=0)
-2. Open the EDSM-RSE folder within plugins as described above
-3. Close EDMC
-4. Move the downloaded file and overwrite the existing one
-5. Start EDMC again
 
 ## Acknowledgments
 
