@@ -146,7 +146,7 @@ class BackgroundWorker(Thread):
 #            return
         try:
             self.conn = psycopg2.connect(host='185.80.92.171', port=5432, dbname='edmc_rse_db', user='edmc_rse_user', password='asdfplkjiouw3875948zksmdxnf')
-            self.conn.autocommit = True
+#            self.conn.autocommit = True
             self.c = self.conn.cursor()
             self.c.execute("SELECT date,id from version WHERE id=1")
             result = self.c.fetchall()
@@ -167,21 +167,21 @@ class BackgroundWorker(Thread):
             return # database not loaded
         self.realNameToPg = dict()
         self.pgToRealName = dict()
-        self.c.execute("SELECT * FROM duplicates")
+        self.c.execute("SELECT real_name,pq_name FROM duplicates")
         for row in self.c.fetchall():
-            _, realName, pgName = row
+            realName, pgName = row
             self.realNameToPg.setdefault(realName.lower(), list())
             self.realNameToPg.get(realName.lower(), list()).append(pgName)
             self.pgToRealName[pgName.lower()] = realName
 
 
     def generateListsFromDatabase(self, x, y, z):
-        sql = "SELECT * FROM systems WHERE is_deleted=false AND systems.x BETWEEN %s AND %s AND systems.y BETWEEN %s AND %s AND systems.z BETWEEN %s AND %s"
+        sql = "SELECT id, name, x, y, z, updated_at FROM systems WHERE is_deleted=false AND systems.x BETWEEN %s AND %s AND systems.y BETWEEN %s AND %s AND systems.z BETWEEN %s AND %s"
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.c.execute(sql, (x - OPTIONS_RADIUS[self.radius], x + OPTIONS_RADIUS[self.radius], y - OPTIONS_RADIUS[self.radius], y + OPTIONS_RADIUS[self.radius], z - OPTIONS_RADIUS[self.radius], z + OPTIONS_RADIUS[self.radius]))
         for row in self.c.fetchall():
-            _, name, x2, y2, z2, _ = row
+            id, name, x2, y2, z2, updated_at = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= OPTIONS_RADIUS[self.radius]:
