@@ -176,7 +176,7 @@ class BackgroundWorker(Thread):
 
 
     def generateListsFromDatabase(self, x, y, z):
-        sql = "SELECT * FROM systems WHERE deleted=false AND systems.x BETWEEN %s AND %s AND systems.y BETWEEN %s AND %s AND systems.z BETWEEN %s AND %s"
+        sql = "SELECT * FROM systems WHERE is_deleted=false AND systems.x BETWEEN %s AND %s AND systems.y BETWEEN %s AND %s AND systems.z BETWEEN %s AND %s"
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.c.execute(sql, (x - OPTIONS_RADIUS[self.radius], x + OPTIONS_RADIUS[self.radius], y - OPTIONS_RADIUS[self.radius], y + OPTIONS_RADIUS[self.radius], z - OPTIONS_RADIUS[self.radius], z + OPTIONS_RADIUS[self.radius]))
