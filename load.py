@@ -167,21 +167,21 @@ class BackgroundWorker(Thread):
             return # database not loaded
         self.realNameToPg = dict()
         self.pgToRealName = dict()
-        self.c.execute("SELECT * FROM duplicates")
+        self.c.execute("SELECT real_name,pq_name FROM duplicates")
         for row in self.c.fetchall():
-            _, realName, pgName = row
+            realName, pgName = row
             self.realNameToPg.setdefault(realName.lower(), list())
             self.realNameToPg.get(realName.lower(), list()).append(pgName)
             self.pgToRealName[pgName.lower()] = realName
 
 
     def generateListsFromDatabase(self, x, y, z):
-        sql = "SELECT * FROM systems WHERE is_deleted=false AND systems.x BETWEEN %s AND %s AND systems.y BETWEEN %s AND %s AND systems.z BETWEEN %s AND %s"
+        sql = "SELECT name,x,y,z FROM systems WHERE is_deleted=false AND systems.x BETWEEN %s AND %s AND systems.y BETWEEN %s AND %s AND systems.z BETWEEN %s AND %s"
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.c.execute(sql, (x - OPTIONS_RADIUS[self.radius], x + OPTIONS_RADIUS[self.radius], y - OPTIONS_RADIUS[self.radius], y + OPTIONS_RADIUS[self.radius], z - OPTIONS_RADIUS[self.radius], z + OPTIONS_RADIUS[self.radius]))
         for row in self.c.fetchall():
-            _, name, x2, y2, z2, _ = row
+            name, x2, y2, z2 = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= OPTIONS_RADIUS[self.radius]:
