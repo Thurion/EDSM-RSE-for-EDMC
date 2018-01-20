@@ -167,7 +167,7 @@ class BackgroundWorker(Thread):
             return # database not loaded
         self.realNameToPg = dict()
         self.pgToRealName = dict()
-        self.c.execute("SELECT real_name,pq_name FROM duplicates")
+        self.c.execute("SELECT real_name,pg_name FROM duplicates")
         for row in self.c.fetchall():
             realName, pgName = row
             self.realNameToPg.setdefault(realName.lower(), list())
