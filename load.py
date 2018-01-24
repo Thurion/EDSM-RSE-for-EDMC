@@ -47,7 +47,6 @@ EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 
 # regex taken from EDTS https://bitbucket.org/Esvandiary/edts
 PG_SYSTEM_REGEX = re.compile(r"^(?P<sector>[\w\s'.()/-]+) (?P<l1>[A-Za-z])(?P<l2>[A-Za-z])-(?P<l3>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<n1>\d+)-)?(?P<n2>\d+)$")
-MC_VALUES = { "a" : 0, "b" : 1, "c" : 2, "d" : 3, "e" : 4, "f" : 5, "g" : 6, "h" : 7}
 
 OPTIONS_INTERVAL        = { 0 : 1, 1 : 3, 2 : 5, 3 : 7 }
 DEFAULT_UPDATE_INTERVAL = 1
@@ -66,21 +65,16 @@ BG_MESSAGE = "bg_message"
 this = sys.modules[__name__]	# For holding module globals
 
 class EliteSystem(object):
-    def __init__(self, id, name, x, y, z, updated_at = None):
-        self.id = id
-        self.name = name
-        self.x = x
-        self.y = y
-        self.z = z
-        self.updated_at = updated_at or 0
-        self.distance = 10000 #set initial value to be out of reach
-
-    def getUncertainty(self):
-        if PG_SYSTEM_REGEX.match(self.name):
-            mc = self.name.split(" ")[-1][:1].lower()
-            # 1.732051 is the length of the vector (1, 1, 1) (sqrt(3)) and is the distance in the worst case
-            return int(((10 * 2 ** MC_VALUES.get(mc, 0)) / 2) * 1.732051) # no need for decimal places here
-        return 0
+    def __init__(self, id, name, x, y, z, updated_at = None, uncertainty = None, action=None):
+        self.id          = id
+        self.name        = name
+        self.x           = x
+        self.y           = y
+        self.z           = z
+        self.updated_at  = updated_at or 0
+        self.uncertainty = uncertainty or 0
+        self.action      = action or ''
+        self.distance    = 10000 #set initial value to be out of reach
 
     @staticmethod
     def calculateDistance(x1, x2, y1, y2, z1, z2):
@@ -96,7 +90,7 @@ class EliteSystem(object):
         return self.calculateDistanceToCoordinates(system2.x, system2.y, system2.z)
 
     def __str__(self):
-        return "id: {id}, name: {name}, distance: {distance:,.2f}, updated: {updated}, uncertainty: {uncertainty}".format(id=self.id, name=self.name, distance=self.distance, updated=self.updated_at, uncertainty=self.getUncertainty())
+        return "id: {id}, name: {name}, distance: {distance:,.2f}, updated: {updated}, uncertainty: {uncertainty}".format(id=self.id, name=self.name, distance=self.distance, updated=self.updated_at, uncertainty=self.uncertainty)
 
     def __repr__(self):
         return self.__str__()
@@ -181,7 +175,7 @@ class BackgroundWorker(Thread):
 
     def generateListsFromDatabase(self, x, y, z):
         sql = ' '.join([
-            "SELECT id, name, x, y, z, updated_at FROM systems",
+            "SELECT id, name, x, y, z, updated_at, uncertainty, action FROM systems",
             "WHERE is_deleted=false AND",
             "systems.x BETWEEN %(x1)s AND %(x2)s AND",
             "systems.y BETWEEN %(y1)s AND %(y2)s AND",
@@ -198,7 +192,7 @@ class BackgroundWorker(Thread):
             'z2': z + OPTIONS_RADIUS(self.radius)
         })
         for row in self.c.fetchall():
-            id, name, x2, y2, z2, updated_at = row
+            id, name, x2, y2, z2, updated_at, uncertainty, action = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= OPTIONS_RADIUS(self.radius):
@@ -237,8 +231,9 @@ class BackgroundWorker(Thread):
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
         params = list()
         names = set()
-        for system in systems:            
-            params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
+        for system in systems:
+            if system.uncertainty > 0:
+                params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
         edsmUrl += "&".join(params)
 
         if __debug__: print("querying EDSM for {} systems".format(len(params)))
@@ -309,7 +304,7 @@ class BackgroundWorker(Thread):
             this.lastEventInfo = dict()
             if len(closestSystems) > 0:
                 closestSystem = closestSystems[0]
-                if closestSystem.getUncertainty() > OPTIONS_RADIUS(self.radius) and closestSystem not in self.systemListHighUncertainty:
+                if closestSystem.uncertainty > OPTIONS_RADIUS(self.radius) and closestSystem not in self.systemListHighUncertainty:
                     self.systemListHighUncertainty.append(closestSystem)
                 this.lastEventInfo[BG_SYSTEM] = closestSystem
             else:
@@ -368,7 +363,7 @@ def updateUI(event = None):
         this.unconfirmedSystem["text"] = eliteSystem.name
         this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
-        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.getUncertainty() or "?")
+        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.uncertainty or "?")
         if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(eliteSystem.name)
