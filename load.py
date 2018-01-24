@@ -44,19 +44,23 @@ if __debug__:
 
 VERSION = "1.1"
 EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
-DEFAULT_UPDATE_INTERVAL = 1
-DEFAULT_RADIUS = 2 # key for radius, see OPTIONS_RADIUS for the dictionary
-RADIUS_ADJUSTMENT_INCREASE = 15 # increase radius if at most this amount of systems were found
-RADIUS_ADJUSTMENT_DECREASE = 100 # decrease the radius if at least this amount of systems were found
+
 # regex taken from EDTS https://bitbucket.org/Esvandiary/edts
 PG_SYSTEM_REGEX = re.compile(r"^(?P<sector>[\w\s'.()/-]+) (?P<l1>[A-Za-z])(?P<l2>[A-Za-z])-(?P<l3>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<n1>\d+)-)?(?P<n2>\d+)$")
 MC_VALUES = { "a" : 0, "b" : 1, "c" : 2, "d" : 3, "e" : 4, "f" : 5, "g" : 6, "h" : 7}
-OPTIONS_RADIUS = {1 : 100, 2 : 250,  3 : 500, 4 : 750, 5 : 1000, 6: 2000, 7 : 4000}
-OPTIONS_INTERVAL = {0 : 1, 1 : 3, 2 : 5, 3 : 7}
+
+OPTIONS_INTERVAL        = { 0 : 1, 1 : 3, 2 : 5, 3 : 7 }
+DEFAULT_UPDATE_INTERVAL = 1
+
+OPTIONS_RADIUS             = lambda x: 39+11*(2**x)
+DEFAULT_RADIUS             = 4 # key for radius, see OPTIONS_RADIUS
+MAX_RADIUS                 = 10
+RADIUS_ADJUSTMENT_INCREASE = 15 # increase radius if at most this amount of systems were found
+RADIUS_ADJUSTMENT_DECREASE = 100 # decrease the radius if at least this amount of systems were found
 
 # keys for dictionary that stores data from the background thread
 # stored in this.lastEventInfo
-BG_SYSTEM = "bg_system"
+BG_SYSTEM  = "bg_system"
 BG_MESSAGE = "bg_message"
 
 this = sys.modules[__name__]	# For holding module globals
@@ -129,14 +133,14 @@ class BackgroundWorker(Thread):
     def adjustRadius(self, numberOfSystems):
         if numberOfSystems <= RADIUS_ADJUSTMENT_INCREASE:
             self.radius += 1
-            if self.radius > len(OPTIONS_RADIUS):
-                self.radius = len(OPTIONS_RADIUS)
-            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, OPTIONS_RADIUS.get(self.radius)))
+            if self.radius > MAX_RADIUS:
+                self.radius = 10
+            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, OPTIONS_RADIUS(self.radius)))
         elif numberOfSystems >= RADIUS_ADJUSTMENT_DECREASE:
             self.radius -= 1
-            if self.radius < 1:
-                self.radius = 1
-            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, OPTIONS_RADIUS.get(self.radius)))
+            if self.radius < 0:
+                self.radius = 0
+            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, OPTIONS_RADIUS(self.radius)))
 
 
     def openDatabase(self):
@@ -176,21 +180,34 @@ class BackgroundWorker(Thread):
 
 
     def generateListsFromDatabase(self, x, y, z):
-        sql = "SELECT id, name, x, y, z, updated_at FROM systems WHERE is_deleted=false AND systems.x BETWEEN %s AND %s AND systems.y BETWEEN %s AND %s AND systems.z BETWEEN %s AND %s"
+        sql = ' '.join([
+            "SELECT id, name, x, y, z, updated_at FROM systems",
+            "WHERE is_deleted=false AND",
+            "systems.x BETWEEN %(x1)s AND %(x2)s AND",
+            "systems.y BETWEEN %(y1)s AND %(y2)s AND",
+            "systems.z BETWEEN %(z1)s AND %(z2)s"
+        ])
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
-        self.c.execute(sql, (x - OPTIONS_RADIUS[self.radius], x + OPTIONS_RADIUS[self.radius], y - OPTIONS_RADIUS[self.radius], y + OPTIONS_RADIUS[self.radius], z - OPTIONS_RADIUS[self.radius], z + OPTIONS_RADIUS[self.radius]))
+        self.c.execute(sql, {
+            'x1': x - OPTIONS_RADIUS(self.radius),
+            'x2': x + OPTIONS_RADIUS(self.radius),
+            'y1': y - OPTIONS_RADIUS(self.radius),
+            'y2': y + OPTIONS_RADIUS(self.radius),
+            'z1': z - OPTIONS_RADIUS(self.radius),
+            'z2': z + OPTIONS_RADIUS(self.radius)
+        })
         for row in self.c.fetchall():
             id, name, x2, y2, z2, updated_at = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
-            if distance <= OPTIONS_RADIUS[self.radius]:
+            if distance <= OPTIONS_RADIUS(self.radius):
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
                 systems.append(eliteSystem)
  
         # filter out systems that already have coordinates
-        systems = filter(lambda x: x not in self.filter, systems)        
+#        systems = filter(lambda x: x not in self.filter, systems)        
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
@@ -292,7 +309,7 @@ class BackgroundWorker(Thread):
             this.lastEventInfo = dict()
             if len(closestSystems) > 0:
                 closestSystem = closestSystems[0]
-                if closestSystem.getUncertainty() > OPTIONS_RADIUS[self.radius] and closestSystem not in self.systemListHighUncertainty:
+                if closestSystem.getUncertainty() > OPTIONS_RADIUS(self.radius) and closestSystem not in self.systemListHighUncertainty:
                     self.systemListHighUncertainty.append(closestSystem)
                 this.lastEventInfo[BG_SYSTEM] = closestSystem
             else:
