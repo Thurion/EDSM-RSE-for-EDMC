@@ -207,7 +207,7 @@ class BackgroundWorker(Thread):
                 systems.append(eliteSystem)
  
         # filter out systems that already have coordinates
-#        systems = filter(lambda x: x not in self.filter, systems)        
+        systems = filter(lambda x: x not in self.filter, systems)        
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
