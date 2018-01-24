@@ -66,21 +66,24 @@ BG_MESSAGE = "bg_message"
 this = sys.modules[__name__]	# For holding module globals
 
 class EliteSystem(object):
-    def __init__(self, id, name, x, y, z, updated_at = None):
-        self.id = id
-        self.name = name
-        self.x = x
-        self.y = y
-        self.z = z
-        self.updated_at = updated_at or 0
-        self.distance = 10000 #set initial value to be out of reach
+    def __init__(self, id, name, x, y, z, updated_at = None, uncertainty = None, action=None):
+        self.id          = id
+        self.name        = name
+        self.x           = x
+        self.y           = y
+        self.z           = z
+        self.updated_at  = updated_at or 0
+        self.uncertainty = uncertainty or 0
+        self.action      = action or ''
+        self.distance    = 10000 #set initial value to be out of reach
 
     def getUncertainty(self):
-        if PG_SYSTEM_REGEX.match(self.name):
-            mc = self.name.split(" ")[-1][:1].lower()
-            # 1.732051 is the length of the vector (1, 1, 1) (sqrt(3)) and is the distance in the worst case
-            return int(((10 * 2 ** MC_VALUES.get(mc, 0)) / 2) * 1.732051) # no need for decimal places here
-        return 0
+        return self.uncertainty
+#        if PG_SYSTEM_REGEX.match(self.name):
+#            mc = self.name.split(" ")[-1][:1].lower()
+#            # 1.732051 is the length of the vector (1, 1, 1) (sqrt(3)) and is the distance in the worst case
+#            return int(((10 * 2 ** MC_VALUES.get(mc, 0)) / 2) * 1.732051) # no need for decimal places here
+#        return 0
 
     @staticmethod
     def calculateDistance(x1, x2, y1, y2, z1, z2):
@@ -181,7 +184,7 @@ class BackgroundWorker(Thread):
 
     def generateListsFromDatabase(self, x, y, z):
         sql = ' '.join([
-            "SELECT id, name, x, y, z, updated_at FROM systems",
+            "SELECT id, name, x, y, z, updated_at, uncertainty, action FROM systems",
             "WHERE is_deleted=false AND",
             "systems.x BETWEEN %(x1)s AND %(x2)s AND",
             "systems.y BETWEEN %(y1)s AND %(y2)s AND",
@@ -198,7 +201,7 @@ class BackgroundWorker(Thread):
             'z2': z + OPTIONS_RADIUS(self.radius)
         })
         for row in self.c.fetchall():
-            id, name, x2, y2, z2, updated_at = row
+            id, name, x2, y2, z2, updated_at, uncertainty, action = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= OPTIONS_RADIUS(self.radius):
@@ -237,8 +240,9 @@ class BackgroundWorker(Thread):
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
         params = list()
         names = set()
-        for system in systems:            
-            params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
+        for system in systems:
+            if system.uncertainty > 0:
+                params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
         edsmUrl += "&".join(params)
 
         if __debug__: print("querying EDSM for {} systems".format(len(params)))
