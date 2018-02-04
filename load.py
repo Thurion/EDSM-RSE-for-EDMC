@@ -65,7 +65,7 @@ BG_MESSAGE = "bg_message"
 this = sys.modules[__name__]	# For holding module globals
 
 class EliteSystem(object):
-    def __init__(self, id, name, x, y, z, updated_at = None, uncertainty = None, action=None):
+    def __init__(self, id, name, x, y, z, updated_at = None, uncertainty = None, action_text=None):
         self.id          = id
         self.name        = name
         self.x           = x
@@ -73,7 +73,7 @@ class EliteSystem(object):
         self.z           = z
         self.updated_at  = updated_at or 0
         self.uncertainty = uncertainty or 0
-        self.action      = action or ''
+        self.action_text = action_text or ''
         self.distance    = 10000 #set initial value to be out of reach
 
     @staticmethod
@@ -175,11 +175,12 @@ class BackgroundWorker(Thread):
 
     def generateListsFromDatabase(self, x, y, z):
         sql = ' '.join([
-            "SELECT id, name, x, y, z, updated_at, uncertainty, action FROM systems",
-            "WHERE is_deleted=false AND",
+            "SELECT id, name, x, y, z, updated_at, uncertainty, action_text FROM systems",
+            "WHERE",
             "systems.x BETWEEN %(x1)s AND %(x2)s AND",
             "systems.y BETWEEN %(y1)s AND %(y2)s AND",
-            "systems.z BETWEEN %(z1)s AND %(z2)s"
+            "systems.z BETWEEN %(z1)s AND %(z2)s AND",
+            "deleted_at IS NULL;"
         ])
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
@@ -192,7 +193,7 @@ class BackgroundWorker(Thread):
             'z2': z + OPTIONS_RADIUS(self.radius)
         })
         for row in self.c.fetchall():
-            id, name, x2, y2, z2, updated_at, uncertainty, action = row
+            id, name, x2, y2, z2, updated_at, uncertainty, action_text = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= OPTIONS_RADIUS(self.radius):
