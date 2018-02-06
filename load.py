@@ -65,16 +65,15 @@ BG_MESSAGE = "bg_message"
 this = sys.modules[__name__]	# For holding module globals
 
 class EliteSystem(object):
-    def __init__(self, id, name, x, y, z, updated_at = None, uncertainty = None, action_text=None):
+    def __init__(self, id, name, x, y, z, uncertainty = None, action = 0):
         self.id          = id
         self.name        = name
         self.x           = x
         self.y           = y
         self.z           = z
-        self.updated_at  = updated_at or 0
         self.uncertainty = uncertainty or 0
-        self.action_text = action_text or ''
         self.distance    = 10000 #set initial value to be out of reach
+        self.action      = action
 
     @staticmethod
     def calculateDistance(x1, x2, y1, y2, z1, z2):
@@ -90,7 +89,7 @@ class EliteSystem(object):
         return self.calculateDistanceToCoordinates(system2.x, system2.y, system2.z)
 
     def __str__(self):
-        return "id: {id}, name: {name}, distance: {distance:,.2f}, updated: {updated}, uncertainty: {uncertainty}".format(id=self.id, name=self.name, distance=self.distance, updated=self.updated_at, uncertainty=self.uncertainty)
+        return "id: {id}, name: {name}, distance: {distance:,.2f}, uncertainty: {uncertainty}".format(id=self.id, name=self.name, distance=self.distance, uncertainty=self.uncertainty)
 
     def __repr__(self):
         return self.__str__()
@@ -174,8 +173,8 @@ class BackgroundWorker(Thread):
 
 
     def generateListsFromDatabase(self, x, y, z):
-        sql = ' '.join([
-            "SELECT id, name, x, y, z, updated_at, uncertainty, action_text FROM systems",
+        sql = " ".join([
+            "SELECT id, name, x, y, z, uncertainty, action_todo FROM systems",
             "WHERE",
             "systems.x BETWEEN %(x1)s AND %(x2)s AND",
             "systems.y BETWEEN %(y1)s AND %(y2)s AND",
@@ -193,7 +192,7 @@ class BackgroundWorker(Thread):
             'z2': z + OPTIONS_RADIUS(self.radius)
         })
         for row in self.c.fetchall():
-            id, name, x2, y2, z2, updated_at, uncertainty, action_text = row
+            id, name, x2, y2, z2, uncertainty, action = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= OPTIONS_RADIUS(self.radius):
