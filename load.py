@@ -142,7 +142,7 @@ class BackgroundWorker(Thread):
 #            sys.stderr.write("EDSM-RSE: Database could not be opened\n")
 #            return
         try:
-            self.conn = psycopg2.connect(host='185.80.92.171', port=5432, dbname='edmc_rse_db', user='edmc_rse_user', password='asdfplkjiouw3875948zksmdxnf')
+            self.conn = psycopg2.connect(host="185.80.92.171", port=5432, dbname="edmc_rse_db", user="edmc_rse_user", password="asdfplkjiouw3875948zksmdxnf")
 #            self.conn.autocommit = True
             self.c = self.conn.cursor()
             self.c.execute("SELECT date,id from version WHERE id=1")
@@ -184,12 +184,12 @@ class BackgroundWorker(Thread):
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.c.execute(sql, {
-            'x1': x - OPTIONS_RADIUS(self.radius),
-            'x2': x + OPTIONS_RADIUS(self.radius),
-            'y1': y - OPTIONS_RADIUS(self.radius),
-            'y2': y + OPTIONS_RADIUS(self.radius),
-            'z1': z - OPTIONS_RADIUS(self.radius),
-            'z2': z + OPTIONS_RADIUS(self.radius)
+            "x1": x - OPTIONS_RADIUS(self.radius),
+            "x2": x + OPTIONS_RADIUS(self.radius),
+            "y1": y - OPTIONS_RADIUS(self.radius),
+            "y2": y + OPTIONS_RADIUS(self.radius),
+            "z1": z - OPTIONS_RADIUS(self.radius),
+            "z2": z + OPTIONS_RADIUS(self.radius)
         })
         for row in self.c.fetchall():
             id, name, x2, y2, z2, uncertainty, action = row
@@ -273,7 +273,7 @@ class BackgroundWorker(Thread):
                 this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
             else:
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
-            this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
+            this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
 
         if tick: 
             if __debug__: print("interval tick")
@@ -310,7 +310,7 @@ class BackgroundWorker(Thread):
             else:
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
 
-            this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
+            this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
 
 
     def run(self):
@@ -330,7 +330,7 @@ class BackgroundWorker(Thread):
 
 def checkTransmissionOptions():
     eddn = (config.getint("output") & config.OUT_SYS_EDDN) == config.OUT_SYS_EDDN
-    edsm = config.getint('edsm_out') and 1
+    edsm = config.getint("edsm_out") and 1
     return eddn or edsm
 
 
@@ -351,7 +351,7 @@ def plugin_start():
     this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
     this.worker.start()
 
-    return 'EDSM-RSE'
+    return "EDSM-RSE"
 
 
 def updateUI(event = None):
