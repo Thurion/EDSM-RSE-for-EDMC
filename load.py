@@ -74,6 +74,7 @@ class EliteSystem(object):
         self.uncertainty = uncertainty or 0
         self.distance    = 10000 #set initial value to be out of reach
         self.action      = action
+        self.action_text = ""
 
     @staticmethod
     def calculateDistance(x1, x2, y1, y2, z1, z2):
@@ -197,7 +198,7 @@ class BackgroundWorker(Thread):
             if distance <= OPTIONS_RADIUS(self.radius):
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
-                eliteSystem.action = ",".join([self.projectsDict[x] for x in self.projectsDict.keys() if (eliteSystem.action & x) == x])
+                eliteSystem.action_text = ','.join([self.projectsDict[x] for x in self.projectsDict.keys() if (eliteSystem.action & x)==x ])
                 systems.append(eliteSystem)
  
         # filter out systems that already have coordinates
@@ -364,7 +365,7 @@ def updateUI(event = None):
         this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
         this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.uncertainty or "?")
-        this.actionText["text"] = eliteSystem.action
+        this.actionText["text"] = eliteSystem.action_text
         if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(eliteSystem.name)
