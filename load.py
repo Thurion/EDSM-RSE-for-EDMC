@@ -191,6 +191,14 @@ class BackgroundWorker(Thread):
             "z1": z - OPTIONS_RADIUS(self.radius),
             "z2": z + OPTIONS_RADIUS(self.radius)
         })
+        if __debug__: print (sql, {
+            "x1": x - OPTIONS_RADIUS(self.radius),
+            "x2": x + OPTIONS_RADIUS(self.radius),
+            "y1": y - OPTIONS_RADIUS(self.radius),
+            "y2": y + OPTIONS_RADIUS(self.radius),
+            "z1": z - OPTIONS_RADIUS(self.radius),
+            "z2": z + OPTIONS_RADIUS(self.radius)
+        })
         for row in self.c.fetchall():
             id, name, x2, y2, z2, uncertainty, action = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
