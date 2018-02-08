@@ -197,6 +197,7 @@ class BackgroundWorker(Thread):
             if distance <= OPTIONS_RADIUS(self.radius):
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
+                eliteSystem.action = ','.join([self.projectsDict[x] for x in self.projectsDict.keys() if (eliteSystem.action_todo & x)==x ])
                 systems.append(eliteSystem)
  
         # filter out systems that already have coordinates
@@ -363,7 +364,7 @@ def updateUI(event = None):
         this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
         this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.uncertainty or "?")
-        this.actionText["text"] = eliteSystem.action_text
+        this.actionText["text"] = eliteSystem.action
         if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(eliteSystem.name)
