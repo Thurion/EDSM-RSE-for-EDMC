@@ -120,6 +120,7 @@ class BackgroundWorker(Thread):
         self.systemList = list()
         self.systemListHighUncertainty = list()
         self.systemDict = dict()
+        self.projectsDict = dict()
         self.filter = set() # systems that already have coordinates
 
 
@@ -137,17 +138,9 @@ class BackgroundWorker(Thread):
 
 
     def openDatabase(self):
-#        if not os.path.exists(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite")):
-#            plug.show_error("EDSM-RSE: Database could not be opened")
-#            sys.stderr.write("EDSM-RSE: Database could not be opened\n")
-#            return
         try:
             self.conn = psycopg2.connect(host="185.80.92.171", port=5432, dbname="edmc_rse_db", user="edmc_rse_user", password="asdfplkjiouw3875948zksmdxnf")
-#            self.conn.autocommit = True
             self.c = self.conn.cursor()
-            self.c.execute("SELECT date,id from version WHERE id=1")
-            result = self.c.fetchall()
-            this.dbVersion = float(result[0][0])
         except Exception as e:
             plug.show_error("EDSM-RSE: Database could not be opened")
             sys.stderr.write("EDSM-RSE: Database could not be opened\n")
@@ -171,11 +164,17 @@ class BackgroundWorker(Thread):
             self.realNameToPg.get(realName.lower(), list()).append(pgName)
             self.pgToRealName[pgName.lower()] = realName
 
+        if len(self.projectsDict)==0:
+            self.c.execute("SELECT id,action_text FROM projects")
+            self.projectsDict = dict()
+            for row in self.c.fetchall():
+                id, action_text = row
+                self.projectsDict[id] = action_text
+
 
     def generateListsFromDatabase(self, x, y, z):
         sql = " ".join([
-            "SELECT id, name, x, y, z, uncertainty, action_todo FROM systems",
-            "WHERE",
+            "SELECT id, name, x, y, z, uncertainty, action_todo FROM systems WHERE",
             "systems.x BETWEEN %(x1)s AND %(x2)s AND",
             "systems.y BETWEEN %(y1)s AND %(y2)s AND",
             "systems.z BETWEEN %(z1)s AND %(z2)s AND",
@@ -364,6 +363,7 @@ def updateUI(event = None):
         this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
         this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.uncertainty or "?")
+        this.actionText["text"] = eliteSystem.action_text
         if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(eliteSystem.name)
@@ -371,6 +371,7 @@ def updateUI(event = None):
         this.unconfirmedSystem.grid_remove()
         this.errorLabel.grid(row=0, column=1, sticky=tk.W)
         this.distanceValue["text"] = "?"
+        this.actionText["text"] = "?"
         if not this.enabled and not this.overwrite.get():
             this.errorLabel["text"] = "EDSM/EDDN is disabled"
         else:
@@ -442,6 +443,9 @@ def plugin_app(parent):
     this.distanceValue = tk.Label(this.frame)
     this.distanceValue.grid(row=1, column=1, sticky=tk.W)
     this.lastEventInfo = dict()
+    tk.Label(this.frame, text="Action:").grid(row=2, column=0, sticky=tk.W)
+    this.actionText = tk.Label(this.frame)
+    this.actionText.grid(row=2, column=1, sticky=tk.W)
 
     updateUI()
     return frame
