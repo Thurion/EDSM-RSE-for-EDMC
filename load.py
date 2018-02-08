@@ -63,17 +63,19 @@ BG_SYSTEM  = "bg_system"
 BG_MESSAGE = "bg_message"
 
 this = sys.modules[__name__]	# For holding module globals
+this.projectsDict = dict()
 
 class EliteSystem(object):
-    def __init__(self, id, name, x, y, z, uncertainty = None, action = 0):
+    def __init__(self, id, name, x, y, z, uncertainty = None, action_todo=0):
         self.id          = id
         self.name        = name
         self.x           = x
         self.y           = y
         self.z           = z
         self.uncertainty = uncertainty or 0
+        self.action_todo = action_todo or 0
+        self.action_text = ''
         self.distance    = 10000 #set initial value to be out of reach
-        self.action      = action
 
     @staticmethod
     def calculateDistance(x1, x2, y1, y2, z1, z2):
@@ -120,6 +122,7 @@ class BackgroundWorker(Thread):
         self.systemList = list()
         self.systemListHighUncertainty = list()
         self.systemDict = dict()
+        self.projectsDict = dict()
         self.filter = set() # systems that already have coordinates
 
 
@@ -137,17 +140,9 @@ class BackgroundWorker(Thread):
 
 
     def openDatabase(self):
-#        if not os.path.exists(os.path.join(os.path.dirname(__file__), "systemsWithoutCoordinates.sqlite")):
-#            plug.show_error("EDSM-RSE: Database could not be opened")
-#            sys.stderr.write("EDSM-RSE: Database could not be opened\n")
-#            return
         try:
-            self.conn = psycopg2.connect(host="185.80.92.171", port=5432, dbname="edmc_rse_db", user="edmc_rse_user", password="asdfplkjiouw3875948zksmdxnf")
-#            self.conn.autocommit = True
+            self.conn = psycopg2.connect(host='185.80.92.171', port=5432, dbname='edmc_rse_db', user='edmc_rse_user', password='asdfplkjiouw3875948zksmdxnf')
             self.c = self.conn.cursor()
-            self.c.execute("SELECT date,id from version WHERE id=1")
-            result = self.c.fetchall()
-            this.dbVersion = float(result[0][0])
         except Exception as e:
             plug.show_error("EDSM-RSE: Database could not be opened")
             sys.stderr.write("EDSM-RSE: Database could not be opened\n")
@@ -170,12 +165,17 @@ class BackgroundWorker(Thread):
             self.realNameToPg.setdefault(realName.lower(), list())
             self.realNameToPg.get(realName.lower(), list()).append(pgName)
             self.pgToRealName[pgName.lower()] = realName
-
+        
+        if len(self.projectsDict)==0:
+            self.c.execute("SELECT id,action_text FROM projects")
+            self.projectsDict = dict()
+            for row in self.c.fetchall():
+                id, action_text = row
+                self.projectsDict[id] = action_text
 
     def generateListsFromDatabase(self, x, y, z):
-        sql = " ".join([
-            "SELECT id, name, x, y, z, uncertainty, action_todo FROM systems",
-            "WHERE",
+        sql = ' '.join([
+            "SELECT id, name, x, y, z, uncertainty, action_todo FROM systems WHERE",
             "systems.x BETWEEN %(x1)s AND %(x2)s AND",
             "systems.y BETWEEN %(y1)s AND %(y2)s AND",
             "systems.z BETWEEN %(z1)s AND %(z2)s AND",
@@ -184,20 +184,21 @@ class BackgroundWorker(Thread):
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.c.execute(sql, {
-            "x1": x - OPTIONS_RADIUS(self.radius),
-            "x2": x + OPTIONS_RADIUS(self.radius),
-            "y1": y - OPTIONS_RADIUS(self.radius),
-            "y2": y + OPTIONS_RADIUS(self.radius),
-            "z1": z - OPTIONS_RADIUS(self.radius),
-            "z2": z + OPTIONS_RADIUS(self.radius)
+            'x1': x - OPTIONS_RADIUS(self.radius),
+            'x2': x + OPTIONS_RADIUS(self.radius),
+            'y1': y - OPTIONS_RADIUS(self.radius),
+            'y2': y + OPTIONS_RADIUS(self.radius),
+            'z1': z - OPTIONS_RADIUS(self.radius),
+            'z2': z + OPTIONS_RADIUS(self.radius)
         })
         for row in self.c.fetchall():
-            id, name, x2, y2, z2, uncertainty, action = row
+            id, name, x2, y2, z2, uncertainty, action_todo = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= OPTIONS_RADIUS(self.radius):
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
+                eliteSystem.action_text = ','.join([self.projectsDict[x] for x in self.projectsDict.keys() if (eliteSystem.action_todo & x)==x ])
                 systems.append(eliteSystem)
  
         # filter out systems that already have coordinates
@@ -273,7 +274,7 @@ class BackgroundWorker(Thread):
                 this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
             else:
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
-            this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
+            this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
         if tick: 
             if __debug__: print("interval tick")
@@ -310,7 +311,7 @@ class BackgroundWorker(Thread):
             else:
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
 
-            this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
+            this.frame.event_generate('<<EDSM-RSE_BackgroundWorker>>', when="tail") # calls updateUI in main thread
 
 
     def run(self):
@@ -330,7 +331,7 @@ class BackgroundWorker(Thread):
 
 def checkTransmissionOptions():
     eddn = (config.getint("output") & config.OUT_SYS_EDDN) == config.OUT_SYS_EDDN
-    edsm = config.getint("edsm_out") and 1
+    edsm = config.getint('edsm_out') and 1
     return eddn or edsm
 
 
@@ -351,7 +352,7 @@ def plugin_start():
     this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
     this.worker.start()
 
-    return "EDSM-RSE"
+    return 'EDSM-RSE'
 
 
 def updateUI(event = None):
@@ -360,10 +361,11 @@ def updateUI(event = None):
     if (this.enabled or this.overwrite.get()) and eliteSystem:
         this.errorLabel.grid_remove()
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
-        this.unconfirmedSystem["text"] = eliteSystem.name
-        this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
+        this.unconfirmedSystem["text"]  = eliteSystem.name
+        this.unconfirmedSystem["url"]   = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
-        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.uncertainty or "?")
+        this.distanceValue["text"]      = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.uncertainty or "?")
+        this.actionText["text"]         = eliteSystem.action_text
         if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(eliteSystem.name)
@@ -442,7 +444,10 @@ def plugin_app(parent):
     this.distanceValue = tk.Label(this.frame)
     this.distanceValue.grid(row=1, column=1, sticky=tk.W)
     this.lastEventInfo = dict()
-
+    tk.Label(this.frame, text="Action:").grid(row=2, column=0, sticky=tk.W)
+    this.actionText = tk.Label(this.frame)
+    this.actionText.grid(row=2, column=1, sticky=tk.W)
+    
     updateUI()
     return frame
 
