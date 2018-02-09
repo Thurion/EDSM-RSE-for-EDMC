@@ -52,7 +52,7 @@ OPTIONS_INTERVAL        = { 0 : 1, 1 : 3, 2 : 5, 3 : 7 }
 DEFAULT_UPDATE_INTERVAL = 1
 
 OPTIONS_RADIUS             = lambda x: 39+11*(2**x)
-DEFAULT_RADIUS             = 4 # key for radius, see OPTIONS_RADIUS
+DEFAULT_RADIUS             = 2 # key for radius, see OPTIONS_RADIUS
 MAX_RADIUS                 = 10
 RADIUS_ADJUSTMENT_INCREASE = 15 # increase radius if at most this amount of systems were found
 RADIUS_ADJUSTMENT_DECREASE = 100 # decrease the radius if at least this amount of systems were found
