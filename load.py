@@ -198,7 +198,7 @@ class BackgroundWorker(Thread):
             if distance <= OPTIONS_RADIUS(self.radius):
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
-                eliteSystem.action_text = ','.join([self.projectsDict[x] for x in self.projectsDict.keys() if (eliteSystem.action & x)==x ])
+                eliteSystem.action_text = ",".join([self.projectsDict[project] for project in self.projectsDict.keys() if (eliteSystem.action & project) == project])
                 systems.append(eliteSystem)
  
         # filter out systems that already have coordinates
