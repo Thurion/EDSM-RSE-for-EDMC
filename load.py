@@ -151,6 +151,8 @@ class BackgroundWorker(Thread):
         if not hasattr(self, "c") or not self.c:
             return # database not loaded
         self.conn.close()
+        self.c = None
+        self.conn = None
 
 
     def initializeDictionaries(self):
@@ -317,13 +319,16 @@ class BackgroundWorker(Thread):
     def run(self):
         self.openDatabase()
         self.initializeDictionaries()
+        self.closeDatabase()
         while True:
             instruction, args = self.queue.get()
             if not instruction:
                 break
 
             if instruction == self.JUMPED_SYSTEM:
+                self.openDatabase()
                 self.handleJumpedSystem(*args)
+                self.closeDatabase()
             self.queue.task_done()
         self.closeDatabase()
         self.queue.task_done()
