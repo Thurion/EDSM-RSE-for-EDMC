@@ -140,7 +140,7 @@ class BackgroundWorker(Thread):
 
     def openDatabase(self):
         try:
-            self.conn = psycopg2.connect(host="185.80.92.171", port=5432, dbname="edmc_rse_db", user="edmc_rse_user", password="asdfplkjiouw3875948zksmdxnf")
+            self.conn = psycopg2.connect(host="cyberlord.de", port=5432, dbname="edmc_rse_db", user="edmc_rse_user", password="asdfplkjiouw3875948zksmdxnf")
             self.c = self.conn.cursor()
         except Exception as e:
             plug.show_error("EDSM-RSE: Database could not be opened")
@@ -185,14 +185,17 @@ class BackgroundWorker(Thread):
         ])
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
-        self.c.execute(sql, {
+        data = {
             "x1": x - OPTIONS_RADIUS(self.radius),
             "x2": x + OPTIONS_RADIUS(self.radius),
             "y1": y - OPTIONS_RADIUS(self.radius),
             "y2": y + OPTIONS_RADIUS(self.radius),
             "z1": z - OPTIONS_RADIUS(self.radius),
             "z2": z + OPTIONS_RADIUS(self.radius)
-        })
+        }
+        if __debug__: print(self.c.mogrify(sql, data))
+
+        self.c.execute(sql, data)
         for row in self.c.fetchall():
             id, name, x2, y2, z2, uncertainty, action = row
             if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
@@ -369,7 +372,10 @@ def updateUI(event = None):
         this.unconfirmedSystem["text"] = eliteSystem.name
         this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
-        this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.uncertainty or "?")
+        if eliteSystem.uncertainty > 0:
+            this.distanceValue["text"] = u"{distance} Ly (\u00B1{uncertainty})".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2), uncertainty=eliteSystem.uncertainty or "?")
+        else:
+            this.distanceValue["text"] = u"{distance} Ly".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2))
         this.actionText["text"] = eliteSystem.action_text
         if this.clipboard.get():
             this.frame.clipboard_clear()
