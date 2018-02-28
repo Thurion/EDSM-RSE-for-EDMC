@@ -140,7 +140,7 @@ class BackgroundWorker(Thread):
 
     def openDatabase(self):
         try:
-            self.conn = psycopg2.connect(host="185.80.92.171", port=5432, dbname="edmc_rse_db", user="edmc_rse_user", password="asdfplkjiouw3875948zksmdxnf")
+            self.conn = psycopg2.connect(host="cyberlord.de", port=5432, dbname="edmc_rse_db", user="edmc_rse_user", password="asdfplkjiouw3875948zksmdxnf")
             self.c = self.conn.cursor()
         except Exception as e:
             plug.show_error("EDSM-RSE: Database could not be opened")
