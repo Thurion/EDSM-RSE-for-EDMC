@@ -158,16 +158,8 @@ class BackgroundWorker(Thread):
     def initializeDictionaries(self):
         if not hasattr(self, "c") or not self.c:
             return # database not loaded
-        self.realNameToPg = dict()
-        self.pgToRealName = dict()
-        self.c.execute("SELECT real_name,pg_name FROM duplicates")
-        for row in self.c.fetchall():
-            realName, pgName = row
-            self.realNameToPg.setdefault(realName.lower(), list())
-            self.realNameToPg.get(realName.lower(), list()).append(pgName)
-            self.pgToRealName[pgName.lower()] = realName
 
-        if len(self.projectsDict)==0:
+        if len(self.projectsDict) == 0:
             self.c.execute("SELECT id,action_text FROM projects")
             self.projectsDict = dict()
             for row in self.c.fetchall():
@@ -195,7 +187,6 @@ class BackgroundWorker(Thread):
         })
         for row in self.c.fetchall():
             id, name, x2, y2, z2, uncertainty, action = row
-            if name in self.pgToRealName: continue # TODO handle dupe systems. ignore them for now
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= OPTIONS_RADIUS(self.radius):
                 eliteSystem = EliteSystem(*row)
