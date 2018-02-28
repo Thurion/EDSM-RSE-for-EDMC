@@ -191,20 +191,20 @@ class BackgroundWorker(Thread):
             if distance <= OPTIONS_RADIUS(self.radius):
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
-                eliteSystem.action_text = ",".join([self.projectsDict[project] for project in self.projectsDict.keys() if (eliteSystem.action & project) == project])
+                eliteSystem.action_text = ", ".join([self.projectsDict[project] for project in self.projectsDict.keys() if (eliteSystem.action & project) == project])
                 systems.append(eliteSystem)
  
-        # filter out systems that already have coordinates
-        systems = filter(lambda x: x not in self.filter, systems)        
+        # filter out systems that have been completed
+        systems = filter(lambda system: system.id not in self.filter, systems)        
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
         self.adjustRadius(len(self.systemList))
         self.systemDict = dict()
         for system in self.systemList:
-            self.systemDict.setdefault(system.name.lower(), system)
+            self.systemDict.setdefault(system.id, system)
         for system in self.systemListHighUncertainty:
-            self.systemDict.setdefault(system.name.lower(), system)
+            self.systemDict.setdefault(system.id, system)
 
 
     def removeSystems(self, systems):
@@ -215,8 +215,8 @@ class BackgroundWorker(Thread):
         self.systemListHighUncertainty = filter(lambda x: x not in systems, self.systemListHighUncertainty)
 
         for system in systems:
-            self.systemDict.pop(system.name.lower(), None)
-            self.filter.add(system)
+            self.systemDict.pop(system.id, None)
+            self.filter.add(system.id)
 
 
     def queryEDSM(self, systems):
@@ -244,17 +244,16 @@ class BackgroundWorker(Thread):
                if __debug__: print_exc()
         return set()
 
-    def handleJumpedSystem(self, coordinates, starName):
+    def handleJumpedSystem(self, coordinates, systemAddress):
         if not hasattr(self, "c") or not self.c:
             return # no database. do nothing
 
         self.counter += 1
         tick = self.counter % self.updateInterval == 0
-        if starName.lower() in self.systemDict: # arrived in system without coordinates
-            # TODO handle dupes
-            if __debug__: print("arrived in {}".format(starName))
-            system = self.systemDict.get(starName.lower(), None)
+        if systemAddress in self.systemDict: # arrived in system without coordinates
+            system = self.systemDict.get(systemAddress, None)
             if system:
+                if __debug__: print("arrived in {}".format(system.name))
                 self.removeSystems([system])
 
             if not tick:
@@ -457,7 +456,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         return # nothing to do here
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
         if "StarPos" in entry:
-            this.queue.put((BackgroundWorker.JUMPED_SYSTEM, (tuple(entry["StarPos"]), entry["StarSystem"])))
+            this.queue.put((BackgroundWorker.JUMPED_SYSTEM, (tuple(entry["StarPos"]), entry["SystemAddress"])))
     if entry["event"] == "Resurrect":
         # reset radius in case someone died in an area where there are not many available stars (meaning very large radius)
         this.worker.radius = DEFAULT_RADIUS
