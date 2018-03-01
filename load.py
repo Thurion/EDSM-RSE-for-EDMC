@@ -119,7 +119,6 @@ class BackgroundWorker(Thread):
         self.updateInterval = updateInterval
         self.counter = -1
         self.systemList = list()
-        self.systemListHighUncertainty = list()
         self.systemDict = dict()
         self.projectsDict = dict()
         self.filter = set() # systems that already have coordinates
@@ -203,8 +202,6 @@ class BackgroundWorker(Thread):
         self.systemDict = dict()
         for system in self.systemList:
             self.systemDict.setdefault(system.id, system)
-        for system in self.systemListHighUncertainty:
-            self.systemDict.setdefault(system.id, system)
 
 
     def removeSystems(self, systems):
@@ -212,7 +209,6 @@ class BackgroundWorker(Thread):
             return # nothing to do
         if __debug__: print("adding {} systems to removal filter".format(len(systems)))
         self.systemList = filter(lambda x: x not in systems, self.systemList)
-        self.systemListHighUncertainty = filter(lambda x: x not in systems, self.systemListHighUncertainty)
 
         for system in systems:
             self.systemDict.pop(system.id, None)
@@ -297,8 +293,6 @@ class BackgroundWorker(Thread):
             this.lastEventInfo = dict()
             if len(closestSystems) > 0:
                 closestSystem = closestSystems[0]
-                if closestSystem.uncertainty > OPTIONS_RADIUS(self.radius) and closestSystem not in self.systemListHighUncertainty:
-                    self.systemListHighUncertainty.append(closestSystem)
                 this.lastEventInfo[BG_SYSTEM] = closestSystem
             else:
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
