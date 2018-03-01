@@ -118,10 +118,9 @@ class BackgroundWorker(Thread):
         self.radius = radius
         self.updateInterval = updateInterval
         self.counter = -1
-        self.systemList = list()
-        self.systemDict = dict()
+        self.systemList = list() # nearby systems, sorted by distance
         self.projectsDict = dict()
-        self.filter = set() # systems that already have coordinates
+        self.filter = set() # systems that have been completed
 
 
     def adjustRadius(self, numberOfSystems):
@@ -200,8 +199,6 @@ class BackgroundWorker(Thread):
         self.systemList = systems
         self.adjustRadius(len(self.systemList))
         self.systemDict = dict()
-        for system in self.systemList:
-            self.systemDict.setdefault(system.id, system)
 
 
     def removeSystems(self, systems):
@@ -211,7 +208,6 @@ class BackgroundWorker(Thread):
         self.systemList = filter(lambda x: x not in systems, self.systemList)
 
         for system in systems:
-            self.systemDict.pop(system.id, None)
             self.filter.add(system.id)
 
 
@@ -246,11 +242,12 @@ class BackgroundWorker(Thread):
 
         self.counter += 1
         tick = self.counter % self.updateInterval == 0
-        if systemAddress in self.systemDict: # arrived in system without coordinates
-            system = self.systemDict.get(systemAddress, None)
-            if system:
-                if __debug__: print("arrived in {}".format(system.name))
-                self.removeSystems([system])
+        system = filter(lambda x: x.id == systemAddress, self.systemList)[:1]
+
+        if len(system) == 1: # arrived in system without coordinates
+            if __debug__: print("arrived in {}".format(system[0].name))
+            #system[0].removeFromProject(PROJECT_RSE)
+            self.removeSystems(system)
 
             if not tick:
                 # distances need to be recalculated
