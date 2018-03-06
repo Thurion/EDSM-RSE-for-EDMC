@@ -48,9 +48,6 @@ EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 # regex taken from EDTS https://bitbucket.org/Esvandiary/edts
 PG_SYSTEM_REGEX = re.compile(r"^(?P<sector>[\w\s'.()/-]+) (?P<l1>[A-Za-z])(?P<l2>[A-Za-z])-(?P<l3>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<n1>\d+)-)?(?P<n2>\d+)$")
 
-OPTIONS_INTERVAL        = { 0 : 1, 1 : 3, 2 : 5, 3 : 7 }
-DEFAULT_UPDATE_INTERVAL = 1
-
 OPTIONS_RADIUS             = lambda x: 39+11*(2**x)
 DEFAULT_RADIUS             = 2 # key for radius, see OPTIONS_RADIUS
 MAX_RADIUS                 = 10
@@ -119,12 +116,10 @@ class BackgroundWorker(Thread):
     # instructions. don't use 0!
     JUMPED_SYSTEM = 1
 
-    def __init__(self, queue, radius = DEFAULT_RADIUS, updateInterval = DEFAULT_UPDATE_INTERVAL):
+    def __init__(self, queue, radius = DEFAULT_RADIUS):
         Thread.__init__(self)
         self.queue = queue
         self.radius = radius
-        self.updateInterval = updateInterval
-        self.counter = -1
         self.systemList = list() # nearby systems, sorted by distance
         self.projectsDict = dict()
         self.filter = set() # systems that have been completed
@@ -251,8 +246,6 @@ class BackgroundWorker(Thread):
 
 
     def handleJumpedSystem(self, coordinates, systemAddress):
-        self.counter += 1
-        tick = self.counter % self.updateInterval == 0
         system = self.getSystemFromID(systemAddress)
 
         if system: # arrived in system without coordinates
@@ -272,9 +265,7 @@ class BackgroundWorker(Thread):
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
             this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
 
-        if tick and hasattr(self, "c") and self.c: # make sure the database is accessible
-            if __debug__: print("interval tick")
-            # interval -> update systems
+        if hasattr(self, "c") and self.c: # make sure the database is accessible
             self.generateListsFromDatabase(*coordinates)
             lowerLimit = 0
             upperLimit = EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
@@ -335,7 +326,6 @@ def checkTransmissionOptions():
 
 def plugin_start():
     settings = config.getint("EDSM-RSE") or 5 # default setting: radius 0 is currently not selectable
-    this.updateInterval = tk.IntVar(value=((settings >> 3) & 0x03))
     this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
     this.overwrite = tk.IntVar(value=((settings >> 6) & 0x01))
 
@@ -346,7 +336,6 @@ def plugin_start():
     this.worker.name = "EDSM-RSE Background Worker"
     this.worker.daemon = True
     this.worker.radius = DEFAULT_RADIUS
-    this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
     this.worker.start()
 
     return "EDSM-RSE"
@@ -398,15 +387,8 @@ def plugin_prefs(parent):
 
     frame = nb.Frame(parent)
     frame.columnconfigure(0, weight=1)
-    nb.Label(frame, text="Update Every x Jumps:").grid(row=0, column=0, padx=PADX, pady=(8,0), sticky=tk.W)
 
-    row = 1    
-    values = sorted(OPTIONS_INTERVAL.keys())
-    for value in values:
-        nb.Radiobutton(frame, variable=this.updateInterval, value=value, text=str(OPTIONS_INTERVAL.get(value, ""))).grid(row=row, column=0, padx=PADX*4, sticky=tk.EW)
-        row += 1
-    
-    nb.Label(frame).grid(row=nextRow()) #spacer
+    row = 0
     nb.Checkbutton(frame, variable=this.clipboard, text="Copy system name to clipboard").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     nb.Checkbutton(frame, variable=this.overwrite, text="I use another tool to transmit data to EDSM/EDDN").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
 
@@ -420,15 +402,13 @@ def plugin_prefs(parent):
 def prefs_changed():
     # bits are as follows:
     # 0-3 radius # not used anymore
-    # 4-5 interval
+    # 4-5 interval, not used anymore
     # 6: copy to clipboard
     # 7: overwrite enabled status
-    settings = (this.updateInterval.get() << 3) | (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
+    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
     config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
     this.worker.radius = DEFAULT_RADIUS
-    this.worker.updateInterval = OPTIONS_INTERVAL.get(this.updateInterval.get(), DEFAULT_UPDATE_INTERVAL) # number translates directly to interval, global variable could be used
-    this.worker.counter = 0
 
     updateUI()
 
