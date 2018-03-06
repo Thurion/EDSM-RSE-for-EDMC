@@ -238,7 +238,7 @@ class BackgroundWorker(Thread):
 
 
     def getSystemFromID(self, id):
-        system = filter(lambda x: x.id == systemAddress, self.systemList)[:1] # there is only one possible match for ID64, avoid exception being thrown
+        system = filter(lambda x: x.id == id, self.systemList)[:1] # there is only one possible match for ID64, avoid exception being thrown
         if len(system) > 0:
             return system[0]
         else:
@@ -253,11 +253,10 @@ class BackgroundWorker(Thread):
             system.removeFromProject(PROJECT_RSE)
             self.removeSystems()
 
-            if not tick:
-                # distances need to be recalculated
-                for system in self.systemList:
-                    system.updateDistanceToCurrentCommanderPosition(*coordinates)
-                self.systemList.sort(key=lambda l: l.distance)
+            # distances need to be recalculated
+            for system in self.systemList:
+                system.updateDistanceToCurrentCommanderPosition(*coordinates)
+            self.systemList.sort(key=lambda l: l.distance)
             this.lastEventInfo = dict()
             if len(self.systemList) > 0:
                 this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
