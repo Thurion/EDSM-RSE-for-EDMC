@@ -18,14 +18,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
 import sys
-import os
 import math
 import json
 import re
 import urllib2
-import time
-import psycopg2
-from datetime import datetime
 
 from threading import Thread
 from Queue import Queue
@@ -34,6 +30,7 @@ import Tkinter as tk
 import ttk
 from ttkHyperlinkLabel import HyperlinkLabel
 import myNotebook as nb
+import psycopg2
 
 from l10n import Locale
 from config import config
