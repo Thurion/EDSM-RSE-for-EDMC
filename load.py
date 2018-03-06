@@ -241,14 +241,23 @@ class BackgroundWorker(Thread):
                if __debug__: print_exc()
         return set()
 
+
+    def getSystemFromID(self, id):
+        system = filter(lambda x: x.id == systemAddress, self.systemList)[:1] # there is only one possible match for ID64, avoid exception being thrown
+        if len(system) > 0:
+            return system[0]
+        else:
+            return None
+
+
     def handleJumpedSystem(self, coordinates, systemAddress):
         self.counter += 1
         tick = self.counter % self.updateInterval == 0
-        system = filter(lambda x: x.id == systemAddress, self.systemList)[:1] # there is only one possible match for ID64, avoid exception being thrown
+        system = self.getSystemFromID(systemAddress)
 
-        if len(system) == 1: # arrived in system without coordinates
-            if __debug__: print("arrived in {}".format(system[0].name))
-            system[0].removeFromProject(PROJECT_RSE)
+        if system: # arrived in system without coordinates
+            if __debug__: print("arrived in {}".format(system.name))
+            system.removeFromProject(PROJECT_RSE)
             self.removeSystems()
 
             if not tick:
