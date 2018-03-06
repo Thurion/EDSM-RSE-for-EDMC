@@ -57,6 +57,10 @@ MAX_RADIUS                 = 10
 RADIUS_ADJUSTMENT_INCREASE = 15 # increase radius if at most this amount of systems were found
 RADIUS_ADJUSTMENT_DECREASE = 100 # decrease the radius if at least this amount of systems were found
 
+# Values for projects
+PROJECT_RSE = 1
+PROJECT_NAVBACON = 2
+
 # keys for dictionary that stores data from the background thread
 # stored in this.lastEventInfo
 BG_SYSTEM  = "bg_system"
@@ -85,6 +89,9 @@ class EliteSystem(object):
 
     def calculateDistanceToCoordinates(self, x2, y2, z2):
         return self.calculateDistance(self.x, x2, self.y, y2, self.z, z2)
+
+    def removeFromProject(self, projectId):
+        self.action = self.action & (~ projectId)
 
     def calculateDistanceToSystem(self, system2):
         return self.calculateDistanceToCoordinates(system2.x, system2.y, system2.z)
@@ -201,19 +208,17 @@ class BackgroundWorker(Thread):
         self.systemDict = dict()
 
 
-    def removeSystems(self, systems):
-        if len(systems) == 0:
-            return # nothing to do
-        if __debug__: print("adding {} systems to removal filter".format(len(systems)))
-        self.systemList = filter(lambda x: x not in systems, self.systemList)
-
-        for system in systems:
+    def removeSystems(self):
+        removeMe = filter(lambda x: x.action == 0, self.systemList)
+        if __debug__: print("adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]))
+        self.systemList = [x for x in self.systemList if x not in removeMe]
+        for system in removeMe:
             self.filter.add(system.id)
 
 
     def queryEDSM(self, systems):
+        # TODO: use a cache
         """ returns a set of systems names in lower case with unknown coordinates """
-        # TODO handle dupes
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
         params = list()
         names = set()
@@ -237,17 +242,14 @@ class BackgroundWorker(Thread):
         return set()
 
     def handleJumpedSystem(self, coordinates, systemAddress):
-        if not hasattr(self, "c") or not self.c:
-            return # no database. do nothing
-
         self.counter += 1
         tick = self.counter % self.updateInterval == 0
-        system = filter(lambda x: x.id == systemAddress, self.systemList)[:1]
+        system = filter(lambda x: x.id == systemAddress, self.systemList)[:1] # there is only one possible match for ID64, avoid exception being thrown
 
         if len(system) == 1: # arrived in system without coordinates
             if __debug__: print("arrived in {}".format(system[0].name))
-            #system[0].removeFromProject(PROJECT_RSE)
-            self.removeSystems(system)
+            system[0].removeFromProject(PROJECT_RSE)
+            self.removeSystems()
 
             if not tick:
                 # distances need to be recalculated
@@ -261,7 +263,7 @@ class BackgroundWorker(Thread):
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
             this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
 
-        if tick: 
+        if tick and hasattr(self, "c") and self.c: # make sure the database is accessible
             if __debug__: print("interval tick")
             # interval -> update systems
             self.generateListsFromDatabase(*coordinates)
@@ -272,12 +274,13 @@ class BackgroundWorker(Thread):
             tries = 0
             while tries < 3 and len(self.systemList) > 0: # no do-while loops...
                 closestSystems = self.systemList[lowerLimit:upperLimit]
-                currentTime = int(time.time())
                 edsmResults = self.queryEDSM(closestSystems)
                 if len(edsmResults) > 0:
                     # remove systems with coordinates
                     systemsWithCoordinates = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
-                    self.removeSystems(systemsWithCoordinates)
+                    for system in systemsWithCoordinates:
+                        system.removeFromProject(PROJECT_RSE)
+                    self.removeSystems()
                     closestSystems = filter(lambda s: s.name.lower() in edsmResults, closestSystems)
                 if len(closestSystems) > 0:
                     # there are still systems in the results -> stop here
