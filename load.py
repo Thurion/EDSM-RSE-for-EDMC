@@ -115,6 +115,7 @@ class BackgroundWorker(Thread):
     
     # instructions. don't use 0!
     JUMPED_SYSTEM = 1
+    NAVBEACON = 2
 
     def __init__(self, queue, radius = DEFAULT_RADIUS):
         Thread.__init__(self)
@@ -253,17 +254,6 @@ class BackgroundWorker(Thread):
             system.removeFromProject(PROJECT_RSE)
             self.removeSystems()
 
-            # distances need to be recalculated
-            for system in self.systemList:
-                system.updateDistanceToCurrentCommanderPosition(*coordinates)
-            self.systemList.sort(key=lambda l: l.distance)
-            this.lastEventInfo = dict()
-            if len(self.systemList) > 0:
-                this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
-            else:
-                this.lastEventInfo[BG_MESSAGE] = "No system in range"
-            this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
-
         if hasattr(self, "c") and self.c: # make sure the database is accessible
             self.generateListsFromDatabase(*coordinates)
             lowerLimit = 0
@@ -290,12 +280,27 @@ class BackgroundWorker(Thread):
                     upperLimit += EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
 
             this.lastEventInfo = dict()
-            if len(closestSystems) > 0:
-                closestSystem = closestSystems[0]
-                this.lastEventInfo[BG_SYSTEM] = closestSystem
+            if len(self.systemList) > 0:
+                this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
             else:
                 this.lastEventInfo[BG_MESSAGE] = "No system in range"
 
+            this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
+
+        else:
+            # distances need to be recalculated because we couldn't get a new list from the database
+            for system in self.systemList:
+                system.updateDistanceToCurrentCommanderPosition(*coordinates)
+            self.systemList.sort(key=lambda l: l.distance)
+
+
+    def handleNavbeacon(self, systemAddress):
+        system = self.getSystemFromID(systemAddress)
+        if system:
+            system.removeFromProject(PROJECT_NAVBACON)
+            self.removeSystems()
+            this.lastEventInfo = dict()
+            this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
             this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
 
 
@@ -312,6 +317,8 @@ class BackgroundWorker(Thread):
                 self.openDatabase()
                 self.handleJumpedSystem(*args)
                 self.closeDatabase()
+            elif instruction == self.NAVBEACON:
+                self.handleNavbeacon(args) # args is only 1 ID64
             self.queue.task_done()
         self.closeDatabase()
         self.queue.task_done()
@@ -440,3 +447,5 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry["event"] == "Resurrect":
         # reset radius in case someone died in an area where there are not many available stars (meaning very large radius)
         this.worker.radius = DEFAULT_RADIUS
+    if entry["event"] == "NavBeaconScan":
+        this.queue.put((BackgroundWorker.NAVBEACON, entry["SystemAddress"]))
