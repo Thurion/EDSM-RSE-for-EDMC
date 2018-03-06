@@ -325,7 +325,6 @@ def checkTransmissionOptions():
 
 
 def plugin_start():
-    this.dbVersion = 0
     settings = config.getint("EDSM-RSE") or 5 # default setting: radius 0 is currently not selectable
     this.updateInterval = tk.IntVar(value=((settings >> 3) & 0x03))
     this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
@@ -404,7 +403,6 @@ def plugin_prefs(parent):
 
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX*2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(VERSION)).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
-    nb.Label(frame, text="Database updated: {}".format(datetime.fromtimestamp(this.dbVersion))).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"), url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"), url="http://edts.thargoid.space/", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     return frame
