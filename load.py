@@ -62,6 +62,16 @@ BG_MESSAGE = "bg_message"
 
 this = sys.modules[__name__]	# For holding module globals
 
+class RseHyperlinkLabel(HyperlinkLabel):
+
+    def __init__(self, master=None, **kw):
+        super(RseHyperlinkLabel, self).__init__(master, **kw)
+        self.menu.add_command(label=_("Ignore"), command = self.ignore)
+
+    def ignore(self):
+        this.worker.ignore(self["text"])
+
+
 class EliteSystem(object):
     def __init__(self, id, name, x, y, z, uncertainty = None, action = 0):
         self.id          = id
@@ -121,6 +131,15 @@ class BackgroundWorker(Thread):
         self.systemList = list() # nearby systems, sorted by distance
         self.projectsDict = dict()
         self.filter = set() # systems that have been completed
+
+
+    def ignore(self, systemName):
+        for system in self.systemList:
+            if system.name.lower() == systemName.lower():
+                system.action = 0
+                self.removeSystems()
+                self.showNewClosestSystem()
+                break;
 
 
     def adjustRadius(self, numberOfSystems):
@@ -422,7 +441,7 @@ def plugin_app(parent):
     this.frame.bind_all("<<EDSM-RSE_BackgroundWorker>>", updateUI)
     this.frame.columnconfigure(1, weight=1)
     tk.Label(this.frame, text="Unconfirmed:").grid(row=0, column=0, sticky=tk.W)
-    this.unconfirmedSystem = HyperlinkLabel(frame, compound=tk.RIGHT, popup_copy = True)
+    this.unconfirmedSystem = RseHyperlinkLabel(frame, compound=tk.RIGHT, popup_copy = True)
     this.errorLabel = tk.Label(frame)
     tk.Label(this.frame, text="Distance:").grid(row=1, column=0, sticky=tk.W)
     this.distanceValue = tk.Label(this.frame)
