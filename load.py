@@ -199,7 +199,6 @@ class BackgroundWorker(Thread):
 
         self.systemList = systems
         self.adjustRadius(len(self.systemList))
-        self.systemDict = dict()
 
 
     def removeSystems(self):
