@@ -244,6 +244,15 @@ class BackgroundWorker(Thread):
             return None
 
 
+    def showNewClosestSystem(self):
+        this.lastEventInfo = dict()
+        if len(self.systemList) > 0:
+            this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
+        else:
+            this.lastEventInfo[BG_MESSAGE] = "No system in range"
+        this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
+
+
     def handleJumpedSystem(self, coordinates, systemAddress):
         system = self.getSystemFromID(systemAddress)
 
@@ -276,14 +285,8 @@ class BackgroundWorker(Thread):
                     tries += 1
                     lowerLimit += EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
                     upperLimit += EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
-
-            this.lastEventInfo = dict()
-            if len(self.systemList) > 0:
-                this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
-            else:
-                this.lastEventInfo[BG_MESSAGE] = "No system in range"
-
-            this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
+            
+            self.showNewClosestSystem()
 
         else:
             # distances need to be recalculated because we couldn't get a new list from the database
@@ -297,9 +300,7 @@ class BackgroundWorker(Thread):
         if system:
             system.removeFromProject(PROJECT_NAVBACON)
             self.removeSystems()
-            this.lastEventInfo = dict()
-            this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
-            this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
+            self.showNewClosestSystem()
 
 
     def run(self):
