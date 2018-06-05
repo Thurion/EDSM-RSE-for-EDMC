@@ -1,6 +1,6 @@
 # EDSM-RSE plugin for [EDMC](https://github.com/Marginal/EDMarketConnector/wiki)
 
-Elite: Dangerous Star Map - Red Star Eleminator (EDSM-RSE) is a plugin that displays the name and distance to a nearby system, that is on EDSM but is missing coordinates (therefore being displayed as red system).
+Elite: Dangerous Star Map - Red Star Eleminator (EDSM-RSE) is a plugin that displays the name and distance to a nearby system, that is of interest for projects on EDSM. Originally designed to seek out unknown coordinate stars, it has branched out to include several other projects.
 
 Systems without coordinates originate from a time, when there was no journal file. Explorers would upload their flight path to EDSM by sending only the system name. Back then, manual trilateration was required to determine where the system is located in the galaxy. Because this was a lengthy and annoying process only a small percentage of the systems back then had coordinates associated to them.
 
