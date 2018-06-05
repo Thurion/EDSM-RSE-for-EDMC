@@ -9,8 +9,6 @@ Scan populated systems - with the addition of nav beacon scans to the journal, E
 
 ![Screenshot](img/main_window.png)
 
-![Screenshot](img/settings.png)
-
 ## Installation
 
 1. On EDMC's Plugins settings tab press the _Open_ button. This reveals the _plugins_ folder where EDMC looks for plugins.
