@@ -34,4 +34,4 @@ Using this plugin only makes sense when the system locations are transmitted via
 
 * RapidfireCRH came up with the idea originally and was highly involved in the project.
 * The estimated coordinates for the systems were created by [EDTS](https://bitbucket.org/Esvandiary/edts)
-* Big thanks to Amiganer_Christain for hosting the remote server and helping with scan tracking.
+* Big thanks to Amiganer_Christian for hosting the remote server and helping with scan tracking.
