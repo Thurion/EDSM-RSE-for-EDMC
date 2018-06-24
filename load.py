@@ -412,7 +412,7 @@ def plugin_prefs(parent):
     frame.columnconfigure(0, weight=1)
 
     row = 0
-    nb.Checkbutton(frame, variable=this.clipboard, text="Copy system name to clipboard").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Checkbutton(frame, variable=this.clipboard, text="Copy system name to clipboard after jump").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     nb.Checkbutton(frame, variable=this.overwrite, text="I use another tool to transmit data to EDSM/EDDN").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
 
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX*2, pady=8, sticky=tk.EW)
