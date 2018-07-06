@@ -35,3 +35,4 @@ Using this plugin only makes sense when the system locations are transmitted via
 * RapidfireCRH came up with the idea originally and was highly involved in the project.
 * The estimated coordinates for the systems were created by [EDTS](https://bitbucket.org/Esvandiary/edts)
 * Big thanks to Amiganer_Christian for hosting the remote server and helping with scan tracking.
+* This plugin is part of the EDMC repack by Six-Shooter. You can download the repack at http://edfs.space/index.php/Tools
