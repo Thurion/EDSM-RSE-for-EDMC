@@ -39,28 +39,28 @@ import plug
 if __debug__:
     from traceback import print_exc
 
-VERSION = "1.1"
-EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 
-# regex taken from EDTS https://bitbucket.org/Esvandiary/edts
-PG_SYSTEM_REGEX = re.compile(r"^(?P<sector>[\w\s'.()/-]+) (?P<l1>[A-Za-z])(?P<l2>[A-Za-z])-(?P<l3>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<n1>\d+)-)?(?P<n2>\d+)$")
+this = sys.modules[__name__]	# For holding module globals
 
-OPTIONS_RADIUS             = lambda x: 39+11*(2**x)
-DEFAULT_RADIUS             = 2 # key for radius, see OPTIONS_RADIUS
-MAX_RADIUS                 = 10
-RADIUS_ADJUSTMENT_INCREASE = 15 # increase radius if at most this amount of systems were found
-RADIUS_ADJUSTMENT_DECREASE = 100 # decrease the radius if at least this amount of systems were found
+this.VERSION = "1.1"
+this.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
+
+this.OPTIONS_RADIUS             = lambda x: 39+11*(2**x)
+this.DEFAULT_RADIUS             = 2 # key for radius, see OPTIONS_RADIUS
+this.MAX_RADIUS                 = 10
+this.RADIUS_ADJUSTMENT_INCREASE = 15 # increase radius if at most this amount of systems were found
+this.RADIUS_ADJUSTMENT_DECREASE = 100 # decrease the radius if at least this amount of systems were found
 
 # Values for projects
-PROJECT_RSE = 1
-PROJECT_NAVBACON = 2
+this.PROJECT_RSE = 1
+this.PROJECT_NAVBACON = 2
 
 # keys for dictionary that stores data from the background thread
 # stored in this.lastEventInfo
-BG_SYSTEM  = "bg_system"
-BG_MESSAGE = "bg_message"
+this.BG_SYSTEM  = "bg_system"
+this.BG_MESSAGE = "bg_message"
 
-this = sys.modules[__name__]	# For holding module globals
+
 
 class RseHyperlinkLabel(HyperlinkLabel):
 
@@ -124,7 +124,7 @@ class BackgroundWorker(Thread):
     JUMPED_SYSTEM = 1
     NAVBEACON = 2
 
-    def __init__(self, queue, radius = DEFAULT_RADIUS):
+    def __init__(self, queue, radius = this.DEFAULT_RADIUS):
         Thread.__init__(self)
         self.queue = queue
         self.radius = radius
@@ -143,22 +143,22 @@ class BackgroundWorker(Thread):
 
 
     def adjustRadius(self, numberOfSystems):
-        if numberOfSystems <= RADIUS_ADJUSTMENT_INCREASE:
+        if numberOfSystems <= this.RADIUS_ADJUSTMENT_INCREASE:
             self.radius += 1
-            if self.radius > MAX_RADIUS:
+            if self.radius > this.MAX_RADIUS:
                 self.radius = 10
-            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, OPTIONS_RADIUS(self.radius)))
-        elif numberOfSystems >= RADIUS_ADJUSTMENT_DECREASE:
+            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, this.OPTIONS_RADIUS(self.radius)))
+        elif numberOfSystems >= this.RADIUS_ADJUSTMENT_DECREASE:
             self.radius -= 1
             if self.radius < 0:
                 self.radius = 0
-            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, OPTIONS_RADIUS(self.radius)))
+            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, this.OPTIONS_RADIUS(self.radius)))
 
 
     def openDatabase(self):
         try:
             self.conn = psycopg2.connect(host="cyberlord.de", port=5432, dbname="edmc_rse_db", user="edmc_rse_user", 
-                                         password="asdfplkjiouw3875948zksmdxnf", application_name="EDSM-RSE {}".format(VERSION), connect_timeout=10)
+                                         password="asdfplkjiouw3875948zksmdxnf", application_name="EDSM-RSE {}".format(this.VERSION), connect_timeout=10)
             self.c = self.conn.cursor()
         except Exception as e:
             plug.show_error("EDSM-RSE: Database could not be opened")
@@ -196,17 +196,17 @@ class BackgroundWorker(Thread):
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.c.execute(sql, {
-            "x1": x - OPTIONS_RADIUS(self.radius),
-            "x2": x + OPTIONS_RADIUS(self.radius),
-            "y1": y - OPTIONS_RADIUS(self.radius),
-            "y2": y + OPTIONS_RADIUS(self.radius),
-            "z1": z - OPTIONS_RADIUS(self.radius),
-            "z2": z + OPTIONS_RADIUS(self.radius)
+            "x1": x - this.OPTIONS_RADIUS(self.radius),
+            "x2": x + this.OPTIONS_RADIUS(self.radius),
+            "y1": y - this.OPTIONS_RADIUS(self.radius),
+            "y2": y + this.OPTIONS_RADIUS(self.radius),
+            "z1": z - this.OPTIONS_RADIUS(self.radius),
+            "z2": z + this.OPTIONS_RADIUS(self.radius)
         })
         for row in self.c.fetchall():
             id, name, x2, y2, z2, uncertainty, action = row
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
-            if distance <= OPTIONS_RADIUS(self.radius):
+            if distance <= this.OPTIONS_RADIUS(self.radius):
                 eliteSystem = EliteSystem(*row)
                 eliteSystem.distance = distance
                 eliteSystem.action_text = ", ".join([self.projectsDict[project] for project in self.projectsDict.keys() if (eliteSystem.action & project) == project])
@@ -265,9 +265,9 @@ class BackgroundWorker(Thread):
     def showNewClosestSystem(self):
         this.lastEventInfo = dict()
         if len(self.systemList) > 0:
-            this.lastEventInfo[BG_SYSTEM] = self.systemList[0]
+            this.lastEventInfo[this.BG_SYSTEM] = self.systemList[0]
         else:
-            this.lastEventInfo[BG_MESSAGE] = "No system in range"
+            this.lastEventInfo[this.BG_MESSAGE] = "No system in range"
         this.frame.event_generate("<<EDSM-RSE_BackgroundWorker>>", when="tail") # calls updateUI in main thread
 
 
@@ -276,13 +276,13 @@ class BackgroundWorker(Thread):
 
         if system: # arrived in system without coordinates
             if __debug__: print("arrived in {}".format(system.name))
-            system.removeFromProject(PROJECT_RSE)
+            system.removeFromProject(this.PROJECT_RSE)
             self.removeSystems()
 
         if hasattr(self, "c") and self.c: # make sure the database is accessible
             self.generateListsFromDatabase(*coordinates)
             lowerLimit = 0
-            upperLimit = EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+            upperLimit = this.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
             
             closestSystems = list()
             tries = 0
@@ -293,7 +293,7 @@ class BackgroundWorker(Thread):
                     # remove systems with coordinates
                     systemsWithCoordinates = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
                     for system in systemsWithCoordinates:
-                        system.removeFromProject(PROJECT_RSE)
+                        system.removeFromProject(this.PROJECT_RSE)
                     self.removeSystems()
                     closestSystems = filter(lambda s: s.name.lower() in edsmResults, closestSystems)
                 if len(closestSystems) > 0:
@@ -301,8 +301,8 @@ class BackgroundWorker(Thread):
                     break
                 else:
                     tries += 1
-                    lowerLimit += EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
-                    upperLimit += EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+                    lowerLimit += this.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+                    upperLimit += this.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
             
             self.showNewClosestSystem()
 
@@ -316,7 +316,7 @@ class BackgroundWorker(Thread):
     def handleNavbeacon(self, systemAddress):
         system = self.getSystemFromID(systemAddress)
         if system:
-            system.removeFromProject(PROJECT_NAVBACON)
+            system.removeFromProject(this.PROJECT_NAVBACON)
             self.removeSystems()
             self.showNewClosestSystem()
 
@@ -358,15 +358,15 @@ def plugin_start():
     this.worker = BackgroundWorker(this.queue)
     this.worker.name = "EDSM-RSE Background Worker"
     this.worker.daemon = True
-    this.worker.radius = DEFAULT_RADIUS
+    this.worker.radius = this.DEFAULT_RADIUS
     this.worker.start()
 
     return "EDSM-RSE"
 
 
 def updateUI(event = None):
-    eliteSystem = this.lastEventInfo.get(BG_SYSTEM, None)
-    message = this.lastEventInfo.get(BG_MESSAGE, None)
+    eliteSystem = this.lastEventInfo.get(this.BG_SYSTEM, None)
+    message = this.lastEventInfo.get(this.BG_MESSAGE, None)
     if (this.enabled or this.overwrite.get()) and eliteSystem:
         this.errorLabel.grid_remove()
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
@@ -416,7 +416,7 @@ def plugin_prefs(parent):
     nb.Checkbutton(frame, variable=this.overwrite, text="I use another tool to transmit data to EDSM/EDDN").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
 
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX*2, pady=8, sticky=tk.EW)
-    nb.Label(frame, text="Plugin Version: {}".format(VERSION)).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Label(frame, text="Plugin Version: {}".format(this.VERSION)).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"), url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"), url="http://edts.thargoid.space/", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     return frame
@@ -431,7 +431,7 @@ def prefs_changed():
     settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
     config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
-    this.worker.radius = DEFAULT_RADIUS
+    this.worker.radius = this.DEFAULT_RADIUS
 
     updateUI()
 
@@ -463,6 +463,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             this.queue.put((BackgroundWorker.JUMPED_SYSTEM, (tuple(entry["StarPos"]), entry["SystemAddress"])))
     if entry["event"] == "Resurrect":
         # reset radius in case someone died in an area where there are not many available stars (meaning very large radius)
-        this.worker.radius = DEFAULT_RADIUS
+        this.worker.radius = this.DEFAULT_RADIUS
     if entry["event"] == "NavBeaconScan":
         this.queue.put((BackgroundWorker.NAVBEACON, entry["SystemAddress"]))
