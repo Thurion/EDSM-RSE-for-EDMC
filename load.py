@@ -23,6 +23,7 @@ import json
 import urllib2
 
 from threading import Thread
+import thread
 from Queue import Queue
 
 import Tkinter as tk
@@ -42,7 +43,6 @@ this = sys.modules[__name__]  # For holding module globals
 
 this.VERSION = "1.1"
 this.VERSION_CHECK_URL = "https://pastebin.com/raw/9sSBrx0W"
-this.versionMismatch = False
 
 this.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY = 15
 
@@ -340,10 +340,6 @@ def checkTransmissionOptions():
     return eddn or edsm
 
 
-def versionCheck():
-    pass
-
-
 def plugin_start():
     settings = config.getint("EDSM-RSE") or 5  # default setting: radius 0 is currently not selectable
     this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
@@ -438,9 +434,22 @@ def prefs_changed():
     updateUI()
 
 
+def versionCheck():
+    request = urllib2.Request(this.VERSION_CHECK_URL)
+    response = urllib2.urlopen(request)
+    newVersion = response.read()
+    if this.VERSION != newVersion:
+        this.frame.event_generate("<<EDSM-RSE_UpdateAvailable>>", when="tail")
+
+
+def showUpdateNotification(event=None):
+    this.updateNotificationLabel.grid(row=3, column=0, columnspan=2, sticky=tk.W)
+
+
 def plugin_app(parent):
     this.frame = tk.Frame(parent)
     this.frame.bind_all("<<EDSM-RSE_BackgroundWorker>>", updateUI)
+    this.frame.bind_all("<<EDSM-RSE_UpdateAvailable>>", showUpdateNotification)
     this.frame.columnconfigure(1, weight=1)
     tk.Label(this.frame, text="Unconfirmed:").grid(row=0, column=0, sticky=tk.W)
     this.unconfirmedSystem = RseHyperlinkLabel(this.frame, compound=tk.RIGHT, popup_copy=True)
@@ -453,7 +462,13 @@ def plugin_app(parent):
     this.actionText = tk.Label(this.frame)
     this.actionText.grid(row=2, column=1, sticky=tk.W)
 
+    this.updateNotificationLabel = HyperlinkLabel(this.frame, text="Plugin update available", background=nb.Label().cget("background"),
+                                                  url="https://github.com/Thurion/EDSM-RSE-for-EDMC/releases", underline=True)
     updateUI()
+
+    # start update check after frame is initialized to avoid any possible race conditions when generating the event
+    thread.start_new_thread(versionCheck, ())
+
     return this.frame
 
 
