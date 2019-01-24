@@ -77,8 +77,8 @@ def plugin_start():
 
 
 def updateUI(event=None):
-    eliteSystem = this.lastEventInfo.get(BackgroundWorker.BG_SYSTEM, None)
-    message = this.lastEventInfo.get(BackgroundWorker.BG_MESSAGE, None)
+    eliteSystem = this.LAST_EVENT_INFO.get(BackgroundWorker.BG_SYSTEM, None)
+    message = this.LAST_EVENT_INFO.get(BackgroundWorker.BG_MESSAGE, None)
     if (this.enabled or this.overwrite.get()) and eliteSystem:
         this.errorLabel.grid_remove()
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
