@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 import sys
 import urllib2
 import thread
+import json
 from Queue import Queue
 
 import Tkinter as tk
@@ -38,7 +39,8 @@ if __debug__:
 this = sys.modules[__name__]  # For holding module globals
 
 this.VERSION = "1.1"
-this.VERSION_CHECK_URL = "https://pastebin.com/raw/9sSBrx0W"
+this.VERSION_CHECK_URL = "https://gist.githubusercontent.com/Thurion/35553c9562297162a86722a28c7565ab/raw/update"
+this.newVersionInfo = None
 
 this.LAST_EVENT_INFO = dict()  # use only to read values. use clear() to clear but don't assign a new value to this variable!
 
@@ -154,14 +156,19 @@ def prefs_changed():
 
 
 def versionCheck():
-    request = urllib2.Request(this.VERSION_CHECK_URL)
-    response = urllib2.urlopen(request)
-    newVersion = response.read()
-    if this.VERSION != newVersion:
-        this.frame.event_generate("<<EDSM-RSE_UpdateAvailable>>", when="tail")
+    try:
+        request = urllib2.Request(this.VERSION_CHECK_URL)
+        response = urllib2.urlopen(request)
+        this.newVersionInfo = json.loads(response.read())
+        if this.VERSION != this.newVersionInfo["version"]:
+            this.frame.event_generate("<<EDSM-RSE_UpdateAvailable>>", when="tail")
+    except ValueError:
+        pass  # ignore
 
 
 def showUpdateNotification(event=None):
+    this.updateNotificationLabel["url"] = this.newVersionInfo["url"]
+    this.updateNotificationLabel["text"] = "Plugin update to {version} available".format(version=this.newVersionInfo["version"])
     this.updateNotificationLabel.grid(row=3, column=0, columnspan=2, sticky=tk.W)
 
 
