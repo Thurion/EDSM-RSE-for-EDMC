@@ -72,7 +72,7 @@ def plugin_start():
     this.worker = BackgroundWorker(this.queue, this.LAST_EVENT_INFO)
     this.worker.name = "EDSM-RSE Background Worker"
     this.worker.daemon = True
-    this.worker.radius = BackgroundWorker.DEFAULT_RADIUS
+    this.worker.radiusExponent = BackgroundWorker.DEFAULT_RADIUS_EXPONENT
     this.worker.start()
 
     return "EDSM-RSE"
@@ -150,7 +150,7 @@ def prefs_changed():
     settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
     config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
-    this.worker.radius = BackgroundWorker.DEFAULT_RADIUS
+    this.worker.radius = BackgroundWorker.DEFAULT_RADIUS_EXPONENT
 
     updateUI()
 
@@ -208,6 +208,6 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             this.queue.put((BackgroundWorker.JUMPED_SYSTEM, (tuple(entry["StarPos"]), entry["SystemAddress"])))
     if entry["event"] == "Resurrect":
         # reset radius in case someone died in an area where there are not many available stars (meaning very large radius)
-        this.worker.radius = BackgroundWorker.DEFAULT_RADIUS
+        this.worker.radius = BackgroundWorker.DEFAULT_RADIUS_EXPONENT
     if entry["event"] == "NavBeaconScan":
         this.queue.put((BackgroundWorker.NAVBEACON, entry["SystemAddress"]))

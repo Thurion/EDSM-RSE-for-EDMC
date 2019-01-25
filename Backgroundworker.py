@@ -36,7 +36,7 @@ class BackgroundWorker(Thread):
     JUMPED_SYSTEM = 1
     NAVBEACON = 2
 
-    DEFAULT_RADIUS = 2  # key for radius, see calculateRadius
+    DEFAULT_RADIUS_EXPONENT = 2  # key for radius, see calculateRadius
     MAX_RADIUS = 10
     RADIUS_ADJUSTMENT_INCREASE = 15  # increase radius if at most this amount of systems were found
     RADIUS_ADJUSTMENT_DECREASE = 100  # decrease the radius if at least this amount of systems were found
@@ -52,10 +52,10 @@ class BackgroundWorker(Thread):
     BG_SYSTEM = "bg_system"
     BG_MESSAGE = "bg_message"
 
-    def __init__(self, queue, lastEventInfo, radius=DEFAULT_RADIUS):
+    def __init__(self, queue, lastEventInfo, radiusExponent=DEFAULT_RADIUS_EXPONENT):
         Thread.__init__(self)
         self.queue = queue
-        self.radius = radius
+        self.radiusExponent = radiusExponent
         self.systemList = list()  # nearby systems, sorted by distance
         self.projectsDict = dict()
         self.filter = set()  # systems that have been completed
@@ -80,15 +80,15 @@ class BackgroundWorker(Thread):
 
     def adjustRadius(self, numberOfSystems):
         if numberOfSystems <= self.RADIUS_ADJUSTMENT_INCREASE:
-            self.radius += 1
-            if self.radius > self.MAX_RADIUS:
-                self.radius = 10
-            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius(self.radius)))
+            self.radiusExponent += 1
+            if self.radiusExponent > self.MAX_RADIUS:
+                self.radiusExponent = 10
+            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius(self.radiusExponent)))
         elif numberOfSystems >= self.RADIUS_ADJUSTMENT_DECREASE:
-            self.radius -= 1
-            if self.radius < 0:
-                self.radius = 0
-            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius(self.radius)))
+            self.radiusExponent -= 1
+            if self.radiusExponent < 0:
+                self.radiusExponent = 0
+            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius(self.radiusExponent)))
 
     def openDatabase(self):
         try:
@@ -128,17 +128,17 @@ class BackgroundWorker(Thread):
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.c.execute(sql, {
-            "x1": x - self.calculateRadius(self.radius),
-            "x2": x + self.calculateRadius(self.radius),
-            "y1": y - self.calculateRadius(self.radius),
-            "y2": y + self.calculateRadius(self.radius),
-            "z1": z - self.calculateRadius(self.radius),
-            "z2": z + self.calculateRadius(self.radius)
+            "x1": x - self.calculateRadius(self.radiusExponent),
+            "x2": x + self.calculateRadius(self.radiusExponent),
+            "y1": y - self.calculateRadius(self.radiusExponent),
+            "y2": y + self.calculateRadius(self.radiusExponent),
+            "z1": z - self.calculateRadius(self.radiusExponent),
+            "z2": z + self.calculateRadius(self.radiusExponent)
         })
         for _row in self.c.fetchall():
             _, name, x2, y2, z2, uncertainty, action = _row
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
-            if distance <= self.calculateRadius(self.radius):
+            if distance <= self.calculateRadius(self.radiusExponent):
                 eliteSystem = EliteSystem(*_row)
                 eliteSystem.distance = distance
                 eliteSystem.action_text = ", ".join(
