@@ -39,7 +39,7 @@ if __debug__:
 this = sys.modules[__name__]  # For holding module globals
 
 this.VERSION = "1.1"
-this.VERSION_CHECK_URL = "https://gist.githubusercontent.com/Thurion/35553c9562297162a86722a28c7565ab/raw/update"
+this.VERSION_CHECK_URL = "https://gist.githubusercontent.com/Thurion/35553c9562297162a86722a28c7565ab/raw/RSE_update_info"
 this.newVersionInfo = None
 
 this.LAST_EVENT_INFO = dict()  # use only to read values. use clear() to clear but don't assign a new value to this variable!
