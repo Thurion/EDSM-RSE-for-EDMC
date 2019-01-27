@@ -59,30 +59,31 @@ class RseData:
         self.lastEventInfo = dict()  # used to pass values to UI. don't assign a new value! use clear() instead
         self.radiusExponent = radiusExponent
         self.frame = None
-        self.c = None
-        self.conn = None
+        self.remoteDbCursor = None
+        self.remoteDbConnection = None
 
     def setFrame(self, frame):
         self.frame = frame
 
-    def openDatabase(self):
+    def openRemoteDatabase(self):
         try:
-            self.conn = psycopg2.connect(host="cyberlord.de", port=5432, dbname="edmc_rse_db", user="edmc_rse_user",
-                                         password="asdfplkjiouw3875948zksmdxnf", application_name="EDSM-RSE {}".format(RseData.VERSION), connect_timeout=10)
-            self.c = self.conn.cursor()
+            self.remoteDbConnection = psycopg2.connect(host="cyberlord.de", port=5432, dbname="edmc_rse_db", user="edmc_rse_user",
+                                                       password="asdfplkjiouw3875948zksmdxnf", application_name="EDSM-RSE {}".format(RseData.VERSION), connect_timeout=10)
+            self.remoteDbCursor = self.remoteDbConnection.cursor()
         except Exception as e:
-            plug.show_error("EDSM-RSE: Database could not be opened")
-            sys.stderr.write("EDSM-RSE: Database could not be opened\n")
+            plug.show_error("EDSM-RSE: Remote database could not be opened")
+            sys.stderr.write("EDSM-RSE: Remote database could not be opened\n")
 
-    def closeDatabase(self):
-        if not hasattr(self, "c") or not self.c:
+    def closeRemoteDatabase(self):
+        if not hasattr(self, "remoteDbCursor") or not self.remoteDbCursor:
             return  # database not loaded
-        self.conn.close()
-        self.c = None
-        self.conn = None
+        self.remoteDbConnection.close()
+        self.remoteDbCursor = None
+        self.remoteDbConnection = None
 
-    def isDatabaseAccessible(self):
-        return hasattr(self, "c") and self.c
+    def isRemoteDatabaseAccessible(self):
+        return hasattr(self, "remoteDbCursor") and self.remoteDbCursor
+
 
     def adjustRadius(self, numberOfSystems):
         if numberOfSystems <= RseData.RADIUS_ADJUSTMENT_INCREASE:
@@ -99,9 +100,9 @@ class RseData:
     def calculateRadius(self, value):
         return 39 + 11 * (2 ** value)
 
-    def generateListsFromDatabase(self, x, y, z):
-        self.openDatabase()
-        if not self.isDatabaseAccessible():
+    def generateListsFromRemoteDatabase(self, x, y, z):
+        self.openRemoteDatabase()
+        if not self.isRemoteDatabaseAccessible():
             return False
 
         sql = " ".join([
@@ -113,7 +114,7 @@ class RseData:
         ])
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
-        self.c.execute(sql, {
+        self.remoteDbCursor.execute(sql, {
             "x1": x - self.calculateRadius(self.radiusExponent),
             "x2": x + self.calculateRadius(self.radiusExponent),
             "y1": y - self.calculateRadius(self.radiusExponent),
@@ -121,7 +122,7 @@ class RseData:
             "z1": z - self.calculateRadius(self.radiusExponent),
             "z2": z + self.calculateRadius(self.radiusExponent)
         })
-        for _row in self.c.fetchall():
+        for _row in self.remoteDbCursor.fetchall():
             _, name, x2, y2, z2, uncertainty, action = _row
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= self.calculateRadius(self.radiusExponent):
@@ -138,18 +139,18 @@ class RseData:
         self.systemList = systems
         self.adjustRadius(len(self.systemList))
 
-        self.closeDatabase()
+        self.closeRemoteDatabase()
         return True
 
-    def initializeDictionaries(self):
-        self.openDatabase()
-        if not self.isDatabaseAccessible():
-            return  # database not loaded
 
-        if len(self.projectsDict) == 0:
-            self.c.execute("SELECT id,action_text FROM projects")
-            self.projectsDict = dict()
-            for _row in self.c.fetchall():
-                _id, action_text = _row
-                self.projectsDict[_id] = action_text
-        self.closeDatabase()
+    def initialize(self):
+        # initialize dictionaries
+        self.openRemoteDatabase()
+        if self.isRemoteDatabaseAccessible():
+            if len(self.projectsDict) == 0:
+                self.remoteDbCursor.execute("SELECT id,action_text FROM projects")
+                self.projectsDict = dict()
+                for _row in self.remoteDbCursor.fetchall():
+                    _id, action_text = _row
+                    self.projectsDict[_id] = action_text
+            self.closeRemoteDatabase()

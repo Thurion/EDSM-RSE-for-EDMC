@@ -30,7 +30,7 @@ class BackgroundWorker(Thread):
         self.rseData = rseData
 
     def run(self):
-        self.rseData.initializeDictionaries()
+        self.rseData.initialize()
         while True:
             task = self.queue.get()
             if not task:
