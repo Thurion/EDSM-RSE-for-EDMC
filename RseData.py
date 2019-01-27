@@ -167,8 +167,13 @@ class RseData:
         if not self.isLocalDatabaseAccessible():
             return  # can't do anything here
         now = time.time()
-        # get list of affected systems
-        pass  # TODO remove from cache DB and filter
+        self.localDbCursor.execute("SELECT id64 FROM IgnoredSystems WHERE expirationDate <= ?", (now,))
+        for row in self.localDbCursor.fetchall():
+            id64 = row[0]
+            if id64 in self.filter:
+                self.filter.remove(id64)
+        self.localDbCursor.execute("DELETE FROM IgnoredSystems WHERE expirationDate <= ?", (now,))
+        self.localDbConnection.commit()
 
     def addSystemToCache(self, id64, expirationTime):
         pass  # TODO add to filter and cache DB
