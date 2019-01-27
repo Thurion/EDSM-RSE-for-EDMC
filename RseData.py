@@ -29,10 +29,7 @@ class RseData:
     VERSION = "1.1"
     VERSION_CHECK_URL = "https://gist.githubusercontent.com/Thurion/35553c9562297162a86722a28c7565ab/raw/RSE_update_info"
 
-    # instructions. don't use 0!
-    JUMPED_SYSTEM = 1
-    NAVBEACON = 2
-
+    # settings for search radius
     DEFAULT_RADIUS_EXPONENT = 2  # key for radius, see calculateRadius
     MAX_RADIUS = 10
     RADIUS_ADJUSTMENT_INCREASE = 15  # increase radius if at most this amount of systems were found
@@ -49,6 +46,7 @@ class RseData:
     BG_MESSAGE = "bg_message"  # string
     BG_JSON = "bg_json"  # if more information is needed: json object
 
+    # name of events
     EVENT_RSE_UPDATE_AVAILABLE = "<<EDSM-RSE_UpdateAvailable>>"
     EVENT_RSE_BACKGROUNDWORKER = "<<EDSM-RSE_BackgroundWorker>>"
 
