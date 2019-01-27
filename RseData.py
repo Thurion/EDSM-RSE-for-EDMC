@@ -123,7 +123,10 @@ class RseData:
     def calculateRadius(self, value):
         return 39 + 11 * (2 ** value)
 
-    def generateListsFromRemoteDatabase(self, x, y, z):
+    def generateListsFromRemoteDatabase(self, x, y, z, handleDbConnection=True):
+        if handleDbConnection:
+            self.openRemoteDatabase()
+
         if not self.isRemoteDatabaseAccessible():
             return False
 
@@ -154,18 +157,24 @@ class RseData:
                     [self.projectsDict[project] for project in self.projectsDict.keys() if (eliteSystem.action & project) == project])
                 systems.append(eliteSystem)
 
-        # filter out systems that have been completed
+        # filter out systems that have been completed or are ignored
         systems = filter(lambda system: system.id not in self.filter, systems)
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
         self.adjustRadius(len(self.systemList))
 
+        if handleDbConnection:
+            self.closeRemoteDatabase()
+
         return True
 
-    def removeExpiredSystemsFromCache(self):
+    def removeExpiredSystemsFromCache(self, handleDbConnection=True):
+        if handleDbConnection:
+            self.openLocalDatabase()
         if not self.isLocalDatabaseAccessible():
             return  # can't do anything here
+
         now = time.time()
         self.localDbCursor.execute("SELECT id64 FROM IgnoredSystems WHERE expirationDate <= ?", (now,))
         for row in self.localDbCursor.fetchall():
@@ -175,10 +184,36 @@ class RseData:
         self.localDbCursor.execute("DELETE FROM IgnoredSystems WHERE expirationDate <= ?", (now,))
         self.localDbConnection.commit()
 
-    def addSystemToCache(self, id64, expirationTime):
-        pass  # TODO add to filter and cache DB
+        if handleDbConnection:
+            self.closeLocalDatabase()
+
+    def addSystemToCache(self, id64, expirationTime, handleDbConnection=True):
+        if handleDbConnection:
+            self.openLocalDatabase()
+        if self.isLocalDatabaseAccessible():
+            self.localDbCursor.execute("INSERT INTO IgnoredSystems VALUES (?, ?)", (id64, expirationTime))
+            self.localDbConnection.commit()
+        if handleDbConnection:
+            self.closeLocalDatabase()
 
     def initialize(self):
+        # initialize local cache
+        # TODO add timer to remove expired entries
+        self.openLocalDatabase()
+        if self.isLocalDatabaseAccessible():
+            self.localDbCursor.execute("""CREATE TABLE IF NOT EXISTS `IgnoredSystems` (
+                                      `id64` INTEGER,
+                                      `expirationDate` REAL,
+                                      PRIMARY KEY(`id64`));""")
+            self.localDbConnection.commit()
+            self.removeExpiredSystemsFromCache(handleDbConnection=False)
+            self.localDbCursor.execute("SELECT id64 FROM IgnoredSystems")
+            for _row in self.localDbCursor.fetchall():
+                id64 = _row[0]
+                self.filter.add(id64)
+
+            self.closeLocalDatabase()
+
         # initialize dictionaries
         self.openRemoteDatabase()
         if self.isRemoteDatabaseAccessible():
@@ -189,19 +224,3 @@ class RseData:
                     _id, action_text = _row
                     self.projectsDict[_id] = action_text
             self.closeRemoteDatabase()
-
-        # initialize local cache
-        self.openLocalDatabase()
-        if self.isLocalDatabaseAccessible():
-            self.localDbCursor.execute("""CREATE TABLE IF NOT EXISTS `IgnoredSystems` (
-                                      `id64` INTEGER,
-                                      `expirationDate` REAL,
-                                      PRIMARY KEY(`id64`));""")
-            self.localDbConnection.commit()
-            self.removeExpiredSystemsFromCache()
-            self.localDbCursor.execute("SELECT id64 FROM IgnoredSystems")
-            for _row in self.localDbCursor.fetchall():
-                id64 = _row
-                self.filter.add(id64)
-
-            self.closeLocalDatabase()
