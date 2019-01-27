@@ -111,7 +111,9 @@ class JumpedSystemTask(BackgroundTask):
             system.removeFromProject(RseData.PROJECT_RSE)
             self.removeSystems()
 
+        self.rseData.openRemoteDatabase()
         if self.rseData.generateListsFromRemoteDatabase(*self.coordinates):
+            self.rseData.closeRemoteDatabase()  # db connection no longer needed
             lowerLimit = 0
             upperLimit = RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
 

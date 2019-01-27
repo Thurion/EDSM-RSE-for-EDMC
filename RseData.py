@@ -81,7 +81,7 @@ class RseData:
             sys.stderr.write("EDSM-RSE: Remote database could not be opened\n")
 
     def closeRemoteDatabase(self):
-        if not hasattr(self, "remoteDbCursor") or not self.remoteDbCursor:
+        if not self.isRemoteDatabaseAccessible():
             return  # database not loaded
         self.remoteDbConnection.close()
         self.remoteDbCursor = None
@@ -124,7 +124,6 @@ class RseData:
         return 39 + 11 * (2 ** value)
 
     def generateListsFromRemoteDatabase(self, x, y, z):
-        self.openRemoteDatabase()
         if not self.isRemoteDatabaseAccessible():
             return False
 
@@ -162,7 +161,6 @@ class RseData:
         self.systemList = systems
         self.adjustRadius(len(self.systemList))
 
-        self.closeRemoteDatabase()
         return True
 
     def removeExpiredSystemsFromCache(self):
