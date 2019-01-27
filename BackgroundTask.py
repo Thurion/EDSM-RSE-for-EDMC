@@ -144,9 +144,10 @@ class JumpedSystemTask(BackgroundTask):
 
 
 class IgnoreSystemTask(BackgroundTask):
-    def __init__(self, rseData, systemName):
+    def __init__(self, rseData, systemName, duration=0):
         super(IgnoreSystemTask, self).__init__(rseData)
         self.systemName = systemName
+        self.duration = duration
 
     def execute(self):
         for system in self.rseData.systemList:

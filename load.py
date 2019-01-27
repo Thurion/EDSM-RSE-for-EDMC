@@ -18,6 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
 import sys
+import time
 import urllib2
 from Queue import Queue
 
@@ -44,11 +45,18 @@ class RseHyperlinkLabel(HyperlinkLabel):
 
     def __init__(self, master=None, **kw):
         super(RseHyperlinkLabel, self).__init__(master, **kw)
-        self.menu.add_command(label=_("Ignore"), command=self.ignore)
+        self.menu.add_command(label=_("Ignore this session"), command=self.ignoreTemporarily)
+        self.menu.add_command(label=_("Ignore for 24 hours"), command=self.ignoreFor24)
+        self.menu.add_command(label=_("Ignore indefinitely"), command=self.ignoreIndefinitely)
 
-    def ignore(self):
-        ignoreSystemTask = IgnoreSystemTask(this.rseData, self["text"])
-        this.queue.put(ignoreSystemTask)
+    def ignoreTemporarily(self):
+        this.queue.put(IgnoreSystemTask(this.rseData, self["text"]))
+
+    def ignoreFor24(self):
+        this.queue.put(IgnoreSystemTask(this.rseData, self["text"], time.time() + 24 * 3600))
+
+    def ignoreIndefinitely(self):
+        this.queue.put(IgnoreSystemTask(this.rseData, self["text"]), sys.maxint)
 
 
 def checkTransmissionOptions():
