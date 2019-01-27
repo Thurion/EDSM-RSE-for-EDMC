@@ -65,8 +65,8 @@ def checkTransmissionOptions():
     return eddn or edsm
 
 
-def plugin_start():
-    this.rseData = RseData()
+def plugin_start(plugin_dir):
+    this.rseData = RseData(plugin_dir)
     settings = config.getint("EDSM-RSE") or 5  # default setting: radius 0 is currently not selectable
     this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
     this.overwrite = tk.IntVar(value=((settings >> 6) & 0x01))

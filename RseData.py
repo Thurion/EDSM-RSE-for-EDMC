@@ -19,7 +19,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import plug
 import sys
+import os
+import time
 import psycopg2
+import sqlite3
 
 from EliteSystem import EliteSystem
 
@@ -50,7 +53,8 @@ class RseData:
     EVENT_RSE_UPDATE_AVAILABLE = "<<EDSM-RSE_UpdateAvailable>>"
     EVENT_RSE_BACKGROUNDWORKER = "<<EDSM-RSE_BackgroundWorker>>"
 
-    def __init__(self, radiusExponent=DEFAULT_RADIUS_EXPONENT):
+    def __init__(self, pluginDir, radiusExponent=DEFAULT_RADIUS_EXPONENT):
+        self.pluginDir = pluginDir
         self.newVersionInfo = None
         self.systemList = list()  # nearby systems, sorted by distance
         self.projectsDict = dict()
@@ -61,6 +65,8 @@ class RseData:
         self.frame = None
         self.remoteDbCursor = None
         self.remoteDbConnection = None
+        self.localDbCursor = None
+        self.localDbConnection = None
 
     def setFrame(self, frame):
         self.frame = frame
@@ -84,6 +90,23 @@ class RseData:
     def isRemoteDatabaseAccessible(self):
         return hasattr(self, "remoteDbCursor") and self.remoteDbCursor
 
+    def openLocalDatabase(self):
+        try:
+            self.localDbConnection = sqlite3.connect(os.path.join(self.pluginDir, "cache.sqlite"))
+            self.localDbCursor = self.localDbConnection.cursor()
+        except Exception as e:
+            plug.show_error("EDSM-RSE: Local cache database could not be opened")
+            sys.stderr.write("EDSM-RSE: Local cache database could not be opened\n")
+
+    def closeLocalDatabase(self):
+        if not self.isLocalDatabaseAccessible():
+            return  # database not loaded
+        self.localDbConnection.close()
+        self.localDbCursor = None
+        self.localDbConnection = None
+
+    def isLocalDatabaseAccessible(self):
+        return hasattr(self, "localDbCursor") and self.localDbCursor
 
     def adjustRadius(self, numberOfSystems):
         if numberOfSystems <= RseData.RADIUS_ADJUSTMENT_INCREASE:
@@ -142,6 +165,15 @@ class RseData:
         self.closeRemoteDatabase()
         return True
 
+    def removeExpiredSystemsFromCache(self):
+        if not self.isLocalDatabaseAccessible():
+            return  # can't do anything here
+        now = time.time()
+        # get list of affected systems
+        pass  # TODO remove from cache DB and filter
+
+    def addSystemToCache(self, id64, expirationTime):
+        pass  # TODO add to filter and cache DB
 
     def initialize(self):
         # initialize dictionaries
@@ -154,3 +186,19 @@ class RseData:
                     _id, action_text = _row
                     self.projectsDict[_id] = action_text
             self.closeRemoteDatabase()
+
+        # initialize local cache
+        self.openLocalDatabase()
+        if self.isLocalDatabaseAccessible():
+            self.localDbCursor.execute("""CREATE TABLE IF NOT EXISTS `IgnoredSystems` (
+                                      `id64` INTEGER,
+                                      `expirationDate` REAL,
+                                      PRIMARY KEY(`id64`));""")
+            self.localDbConnection.commit()
+            self.removeExpiredSystemsFromCache()
+            self.localDbCursor.execute("SELECT id64 FROM IgnoredSystems")
+            for _row in self.localDbCursor.fetchall():
+                id64 = _row
+                self.filter.add(id64)
+
+            self.closeLocalDatabase()
