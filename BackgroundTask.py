@@ -174,3 +174,12 @@ class VersionCheckTask(BackgroundTask):
                 self.rseData.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
         except ValueError:
             pass  # ignore
+
+
+class TimedTask(BackgroundTask):
+    # the reason this class exists is to use the task queue for the timer
+    def __init__(self, rseData):
+        super(TimedTask, self).__init__(rseData)
+
+    def execute(self):
+        self.rseData.removeExpiredSystemsFromCache()
