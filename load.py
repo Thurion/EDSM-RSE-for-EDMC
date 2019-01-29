@@ -38,7 +38,17 @@ if __debug__:
     from traceback import print_exc
 
 this = sys.modules[__name__]  # For holding module globals
-this.rseData = None
+this.rseData = None  # holding module wide variables
+this.systemCreated = True  # initialize with true in case someone uses an older EDMC version that does not call edsm_notify_system()
+this.worker = None  # background worker
+this.queue = None  # queue used by the background worker
+this.clipboard = None  # (tk.IntVar) copy system name to clipboard
+this.overwrite = None  # (tk.IntVar) overwrite disabled state (EDSM/EDDN disabled)
+this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
+this.enabled = False  # plugin configured correctly and therefore enabled
+this.unconfirmedSystem = None  # (RseHyperlinkLabel) display name of system that needs checking
+this.distanceValue = None  # (tk.Label) distance to system
+this.actionText = None  # (tk.Label) task to do
 
 
 class RseHyperlinkLabel(HyperlinkLabel):
