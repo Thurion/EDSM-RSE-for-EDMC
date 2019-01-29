@@ -218,9 +218,9 @@ class RseData:
         self.openRemoteDatabase()
         if self.isRemoteDatabaseAccessible():
             if len(self.projectsDict) == 0:
-                self.remoteDbCursor.execute("SELECT id,action_text FROM projects")
+                self.remoteDbCursor.execute("SELECT id, action_text, enabled FROM projects")
                 self.projectsDict = dict()
                 for _row in self.remoteDbCursor.fetchall():
-                    _id, action_text = _row
+                    _id, action_text, enabled = _row
                     self.projectsDict[_id] = action_text
             self.closeRemoteDatabase()
