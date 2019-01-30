@@ -45,6 +45,7 @@ this.queue = None  # queue used by the background worker
 this.clipboard = None  # (tk.IntVar) copy system name to clipboard
 this.overwrite = None  # (tk.IntVar) overwrite disabled state (EDSM/EDDN disabled)
 this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
+this.edsmBodyCheck = None  # (tk.Label) compare total number of bodies to the number known to EDSM
 this.enabled = False  # plugin configured correctly and therefore enabled
 this.unconfirmedSystem = None  # (RseHyperlinkLabel) display name of system that needs checking
 this.distanceValue = None  # (tk.Label) distance to system
@@ -80,6 +81,7 @@ def plugin_start(plugin_dir):
     settings = config.getint("EDSM-RSE") or 5  # default setting: radius 0 is currently not selectable
     this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
     this.overwrite = tk.IntVar(value=((settings >> 6) & 0x01))
+    this.edsmBodyCheck = tk.IntVar(value=((settings >> 7) & 0x01))
 
     this.enabled = checkTransmissionOptions()
 
@@ -128,6 +130,12 @@ def plugin_close():
     this.worker = None
 
 
+def edsmClearCacheCallback():
+    # TODO
+    if __debug__:
+        print("edsmClearCacheCallback")
+
+
 def plugin_prefs(parent):
     PADX = 5
     global row
@@ -142,6 +150,11 @@ def plugin_prefs(parent):
     frame.columnconfigure(0, weight=1)
 
     row = 0
+
+    nb.Checkbutton(frame, variable=this.edsmBodyCheck,
+                   text="Check if body information on EDSM is incomplete").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Button(frame, text="Clear cache of scanned systems", command=edsmClearCacheCallback).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Checkbutton(frame, variable=this.clipboard,
                    text="Copy system name to clipboard after jump").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     nb.Checkbutton(frame, variable=this.overwrite,
@@ -162,7 +175,8 @@ def prefs_changed():
     # 4-5 interval, not used anymore
     # 6: copy to clipboard
     # 7: overwrite enabled status
-    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6)
+    # 8: EDSM body check
+    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | (this.edsmBodyCheck.get() << 7)
     config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
     this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
@@ -222,3 +236,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.rseData.radius = RseData.DEFAULT_RADIUS_EXPONENT
     if entry["event"] == "NavBeaconScan":
         this.queue.put(NavbeaconTask(this.rseData, entry["SystemAddress"]))
+
+    # TODO FSSDiscoveryScan, FSSAllBodiesFound
+
+
+def edsm_notify_system(reply):
+    if reply.get('systemCreated'):
+        this.systemCreated = True
+    else:
+        this.systemCreated = False
