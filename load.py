@@ -261,8 +261,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         return  # nothing to do here
     
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
-        this.edsmBodyCountText["text"] = "Use discovery scanner"
-        this.systemScanned = False
+        if entry["SystemAddress"] in this.rseData.scannedSystems:
+            this.edsmBodyCountText["text"] = "System complete"
+            this.systemScanned = True
+        else:
+            this.edsmBodyCountText["text"] = "Use discovery scanner"
+            this.systemScanned = False
         if "StarPos" in entry:
             this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, entry["StarPos"], entry["SystemAddress"]))
 
