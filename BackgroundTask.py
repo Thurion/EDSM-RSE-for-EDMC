@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 import json
 import urllib2
 import time
+import sys
 
 from RseData import RseData
 
@@ -227,14 +228,33 @@ class FSSAllBodiesFoundTask(EdsmBodyCheck):
         self.id64 = id64
 
     def execute(self):
-        pass  # TODO
-        # self.rseData.addSystemToCache(self.id64, RseData.CACHE_FULLY_SCANNED_BODIES)
+        self.rseData.addSystemToCache(self.id64, sys.maxint, RseData.CACHE_FULLY_SCANNED_BODIES)
+        self.fireEvent("System scanned")
 
 
-class FSSDiscoveryScan(EdsmBodyCheck):
-    def __init__(self, rseData, systemName):
-        super(FSSAllBodiesFoundTask, self).__init__(rseData)
+class FSSDiscoveryScanTask(EdsmBodyCheck):
+    def __init__(self, rseData, systemName, bodyCount):
+        super(FSSDiscoveryScanTask, self).__init__(rseData)
         self.systemName = systemName
+        self.bodyCount = bodyCount
+
+    def queryEdsm(self):
+        edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=urllib2.quote(self.systemName))
+        if __debug__:
+            print("querying EDSM for bodies of system {}".format(self.systemName))
+        try:
+            url = urllib2.urlopen(edsmUrl, timeout=10)
+            response = url.read()
+            edsmJson = json.loads(response)
+            return edsmJson["id64"], len(edsmJson["bodies"])
+        except:
+            if __debug__: print_exc()
+        return None, None  # error/timeout occurred
 
     def execute(self):
-        pass  # TODO
+        id64, knownToEdsm = self.queryEdsm()
+        if id64 and knownToEdsm:
+            difference = self.bodyCount - knownToEdsm
+            self.fireEvent("EDSM missing {} bodies".format(difference))
+        else:
+            self.fireEvent("Error; scan everything")

@@ -17,9 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
-import sys
-import time
-import urllib2
 from Queue import Queue
 
 import Tkinter as tk
@@ -31,8 +28,7 @@ from l10n import Locale
 from config import config
 
 from Backgroundworker import BackgroundWorker
-from RseData import RseData
-from BackgroundTask import JumpedSystemTask, NavbeaconTask, IgnoreSystemTask, VersionCheckTask, DeleteSystemsFromCacheTask
+from BackgroundTask import *
 
 if __debug__:
     from traceback import print_exc
@@ -259,6 +255,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if not this.enabled and not this.overwrite.get() or is_beta:
         return  # nothing to do here
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
+        this.edsmBodyCountText["text"] = "Use discovery scanner"
         if "StarPos" in entry:
             this.queue.put(JumpedSystemTask(this.rseData, entry["StarPos"], entry["SystemAddress"]))
     if entry["event"] == "Resurrect":
@@ -266,16 +263,17 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.rseData.radius = RseData.DEFAULT_RADIUS_EXPONENT
     if entry["event"] == "NavBeaconScan":
         this.queue.put(NavbeaconTask(this.rseData, entry["SystemAddress"]))
-    if not this.systemCreated and entry["event"] == "FSSDiscoveryScan":
-        # TODO
-        pass
-    if entry["event"] == "FSSAllBodiesFound":
-        # TODO
-        pass
+    if entry["event"] == "FSSDiscoveryScan" and this.edsmBodyCheck.get():
+        if this.systemCreated:
+            this.edsmBodyCountText["text"] = "Scan all {} bodies".format(entry["BodyCount"])
+        else:
+            this.queue.put(FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"]))
+    if entry["event"] == "FSSAllBodiesFound" and this.edsmBodyCheck.get():
+        this.queue.put(FSSAllBodiesFoundTask(this.rseData, entry["SystemAddress"]))
 
 
 def edsm_notify_system(reply):
-    if reply.get('systemCreated'):
+    if reply.get("systemCreated"):
         this.systemCreated = True
     else:
         this.systemCreated = False
