@@ -17,6 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
+import sys
+import urllib2
+import time
 from Queue import Queue
 
 import Tkinter as tk
@@ -27,8 +30,9 @@ import myNotebook as nb
 from l10n import Locale
 from config import config
 
+from RseData import RseData
 from Backgroundworker import BackgroundWorker
-from BackgroundTask import *
+import BackgroundTask as BackgroundTask
 
 if __debug__:
     from traceback import print_exc
@@ -64,13 +68,13 @@ class RseHyperlinkLabel(HyperlinkLabel):
         self.menu.add_command(label=_("Ignore indefinitely"), command=self.ignoreIndefinitely)
 
     def ignoreTemporarily(self):
-        this.queue.put(IgnoreSystemTask(this.rseData, self["text"]))
+        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"]))
 
     def ignoreFor24(self):
-        this.queue.put(IgnoreSystemTask(this.rseData, self["text"], time.time() + 24 * 3600))
+        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], time.time() + 24 * 3600))
 
     def ignoreIndefinitely(self):
-        this.queue.put(IgnoreSystemTask(this.rseData, self["text"], sys.maxint))
+        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], sys.maxint))
 
 
 def checkTransmissionOptions():
@@ -149,7 +153,7 @@ def plugin_close():
 
 def edsmClearCacheCallback():
     # called when clicked on the clear cache of scanned systems button in settings
-    this.queue.put(DeleteSystemsFromCacheTask(this.rseData, RseData.CACHE_FULLY_SCANNED_BODIES))
+    this.queue.put(BackgroundTask.DeleteSystemsFromCacheTask(this.rseData, RseData.CACHE_FULLY_SCANNED_BODIES))
 
 
 def plugin_prefs(parent):
@@ -246,7 +250,7 @@ def plugin_app(parent):
     updateUiEdsmBodyCount()
 
     # start update check after frame is initialized to avoid any possible race conditions when generating the event
-    this.queue.put(VersionCheckTask(this.rseData))
+    this.queue.put(BackgroundTask.VersionCheckTask(this.rseData))
 
     return this.frame
 
@@ -257,19 +261,19 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
         this.edsmBodyCountText["text"] = "Use discovery scanner"
         if "StarPos" in entry:
-            this.queue.put(JumpedSystemTask(this.rseData, entry["StarPos"], entry["SystemAddress"]))
+            this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, entry["StarPos"], entry["SystemAddress"]))
     if entry["event"] == "Resurrect":
         # reset radius in case someone died in an area where there are not many available stars (meaning very large radius)
         this.rseData.radius = RseData.DEFAULT_RADIUS_EXPONENT
     if entry["event"] == "NavBeaconScan":
-        this.queue.put(NavbeaconTask(this.rseData, entry["SystemAddress"]))
+        this.queue.put(BackgroundTask.NavbeaconTask(this.rseData, entry["SystemAddress"]))
     if entry["event"] == "FSSDiscoveryScan" and this.edsmBodyCheck.get():
         if this.systemCreated:
             this.edsmBodyCountText["text"] = "Scan all {} bodies".format(entry["BodyCount"])
         else:
-            this.queue.put(FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"]))
+            this.queue.put(BackgroundTask.FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"]))
     if entry["event"] == "FSSAllBodiesFound" and this.edsmBodyCheck.get():
-        this.queue.put(FSSAllBodiesFoundTask(this.rseData, entry["SystemAddress"]))
+        this.queue.put(BackgroundTask.FSSAllBodiesFoundTask(this.rseData, entry["SystemAddress"]))
 
 
 def edsm_notify_system(reply):
