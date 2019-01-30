@@ -241,7 +241,7 @@ def plugin_app(parent):
     this.actionText = tk.Label(this.frame)
     this.actionText.grid(row=2, column=1, sticky=tk.W)
 
-    this.edsmBodyCountDescription = tk.Label(this.frame, text="EDSM body count:")
+    this.edsmBodyCountDescription = tk.Label(this.frame, text="EDSM Bodies:")
     this.edsmBodyCountText = tk.Label(this.frame)
     this.edsmBodyCountText["text"] = "?"
 
@@ -275,7 +275,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
 
     if entry["event"] == "FSSDiscoveryScan" and this.edsmBodyCheck.get():
         if this.systemCreated:
-            this.edsmBodyCountText["text"] = "Scan all {} bodies".format(entry["BodyCount"])
+            this.edsmBodyCountText["text"] = "0/{}".format(entry["BodyCount"])
         elif not this.systemScanned:
             this.queue.put(BackgroundTask.FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"]))
         this.systemScanned = True

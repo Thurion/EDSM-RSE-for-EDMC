@@ -229,7 +229,7 @@ class FSSAllBodiesFoundTask(EdsmBodyCheck):
 
     def execute(self):
         self.rseData.addSystemToCache(self.id64, sys.maxint, RseData.CACHE_FULLY_SCANNED_BODIES)
-        self.fireEvent("System scanned")
+        self.fireEvent("System complete")
 
 
 class FSSDiscoveryScanTask(EdsmBodyCheck):
@@ -254,7 +254,6 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
     def execute(self):
         id64, knownToEdsm = self.queryEdsm()
         if id64 and knownToEdsm:
-            difference = self.bodyCount - knownToEdsm
-            self.fireEvent("EDSM missing {} bodies".format(difference))
+            self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM=knownToEdsm))
         else:
-            self.fireEvent("Error; scan everything")
+            self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM="?"))
