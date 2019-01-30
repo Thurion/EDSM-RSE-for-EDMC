@@ -32,7 +32,7 @@ from config import config
 
 from Backgroundworker import BackgroundWorker
 from RseData import RseData
-from BackgroundTask import JumpedSystemTask, NavbeaconTask, IgnoreSystemTask, VersionCheckTask
+from BackgroundTask import JumpedSystemTask, NavbeaconTask, IgnoreSystemTask, VersionCheckTask, DeleteSystemsFromCacheTask
 
 if __debug__:
     from traceback import print_exc
@@ -131,9 +131,7 @@ def plugin_close():
 
 
 def edsmClearCacheCallback():
-    # TODO
-    if __debug__:
-        print("edsmClearCacheCallback")
+    this.queue.put(DeleteSystemsFromCacheTask(this.rseData, RseData.CACHE_FULLY_SCANNED_BODIES))
 
 
 def plugin_prefs(parent):

@@ -184,3 +184,12 @@ class TimedTask(BackgroundTask):
     def execute(self):
         self.rseData.removeExpiredSystemsFromCaches()
 
+
+class DeleteSystemsFromCacheTask(BackgroundTask):
+    def __init__(self, rseData, cacheType):
+        super(DeleteSystemsFromCacheTask, self).__init__(rseData)
+        self.cacheType = cacheType
+
+    def execute(self):
+        self.rseData.removeAllSystemsFromCache(self.cacheType)
+
