@@ -155,7 +155,7 @@ class IgnoreSystemTask(BackgroundTask):
                 system.action = 0
                 self.removeSystems()
                 if self.duration > 0:
-                    self.rseData.addSystemToCache(system.id, self.duration)
+                    self.rseData.addSystemToCache(system.id, self.duration, RseData.CACHE_IGNORED_SYSTEMS)
                 self.fireEvent()
                 break
 
@@ -182,4 +182,5 @@ class TimedTask(BackgroundTask):
         super(TimedTask, self).__init__(rseData)
 
     def execute(self):
-        self.rseData.removeExpiredSystemsFromCache()
+        self.rseData.removeExpiredSystemsFromCaches()
+
