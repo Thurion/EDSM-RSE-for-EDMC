@@ -31,15 +31,19 @@ class BackgroundTask(object):
         self.rseData = rseData
 
     def execute(self):
+        if __debug__:
+            print("{} didn't implement execute".format(self.__class__.__name__))
         pass  # to be implemented by subclass
 
-    def getSystemFromID(self, id64):
-        system = filter(lambda x: x.id == id64, self.rseData.systemList)[
-                 :1]  # there is only one possible match for ID64, avoid exception being thrown
-        if len(system) > 0:
-            return system[0]
-        else:
-            return None
+    def fireEvent(self):
+        if __debug__:
+            print("{} didn't implement fireEvent".format(self.__class__.__name__))
+        pass  # to be implemented by subclass
+
+
+class BackgroundTaskClosestSystem(BackgroundTask):
+    def __init__(self, rseUtils):
+        super(BackgroundTaskClosestSystem, self).__init__(rseUtils)
 
     def fireEvent(self):
         self.rseData.lastEventInfo.clear()
@@ -50,6 +54,14 @@ class BackgroundTask(object):
         if self.rseData.frame:
             self.rseData.frame.event_generate(RseData.EVENT_RSE_BACKGROUNDWORKER, when="tail")  # calls updateUI in main thread
 
+    def getSystemFromID(self, id64):
+        system = filter(lambda x: x.id == id64, self.rseData.systemList)[
+                 :1]  # there is only one possible match for ID64, avoid exception being thrown
+        if len(system) > 0:
+            return system[0]
+        else:
+            return None
+
     def removeSystems(self):
         removeMe = filter(lambda x: x.action == 0, self.rseData.systemList)
         if __debug__: print(
@@ -59,7 +71,7 @@ class BackgroundTask(object):
             self.rseData.filter.add(system.id)
 
 
-class NavbeaconTask(BackgroundTask):
+class NavbeaconTask(BackgroundTaskClosestSystem):
     def __init__(self, rseUtils, systemAddress):
         super(NavbeaconTask, self).__init__(rseUtils)
         self.systemAddress = systemAddress
@@ -72,7 +84,7 @@ class NavbeaconTask(BackgroundTask):
             self.fireEvent()
 
 
-class JumpedSystemTask(BackgroundTask):
+class JumpedSystemTask(BackgroundTaskClosestSystem):
     def __init__(self, rseUtils, coordinates, systemAddress):
         super(JumpedSystemTask, self).__init__(rseUtils)
         self.coordinates = coordinates
@@ -143,7 +155,7 @@ class JumpedSystemTask(BackgroundTask):
             self.rseData.systemList.sort(key=lambda l: l.distance)
 
 
-class IgnoreSystemTask(BackgroundTask):
+class IgnoreSystemTask(BackgroundTaskClosestSystem):
     def __init__(self, rseData, systemName, duration=0):
         super(IgnoreSystemTask, self).__init__(rseData)
         self.systemName = systemName
