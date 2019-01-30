@@ -219,9 +219,9 @@ class RseData:
             self.openLocalDatabase()
         if self.isLocalDatabaseAccessible():
             if cacheType == RseData.CACHE_IGNORED_SYSTEMS:
-                self.localDbCursor.execute("INSERT INTO IgnoredSystems VALUES (?, ?)", (id64, expirationTime))
+                self.localDbCursor.execute("INSERT OR REPLACE INTO IgnoredSystems VALUES (?, ?)", (id64, expirationTime))
             elif cacheType == RseData.CACHE_FULLY_SCANNED_BODIES:
-                self.localDbCursor.execute("INSERT INTO ScannedSystems VALUES (?, ?)", (id64, expirationTime))
+                self.localDbCursor.execute("INSERT OR REPLACE INTO ScannedSystems VALUES (?, ?)", (id64, expirationTime))
             self.localDbConnection.commit()
         if handleDbConnection:
             self.closeLocalDatabase()
