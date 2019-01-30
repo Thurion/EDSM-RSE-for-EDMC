@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import json
 import urllib2
+import time
 
 from RseData import RseData
 
@@ -55,8 +56,11 @@ class BackgroundTask(object):
         if __debug__: print(
             "adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]))
         self.rseData.systemList = [x for x in self.rseData.systemList if x not in removeMe]
+        self.rseData.openLocalDatabase()
         for system in removeMe:
             self.rseData.filter.add(system.id)
+            self.rseData.addSystemToCache(system.id, time.time() + 24 * 3600, handleDbConnection=False)
+        self.rseData.closeLocalDatabase()
 
 
 class NavbeaconTask(BackgroundTask):

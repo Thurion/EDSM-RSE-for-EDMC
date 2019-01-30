@@ -191,7 +191,7 @@ class RseData:
         if handleDbConnection:
             self.openLocalDatabase()
         if self.isLocalDatabaseAccessible():
-            self.localDbCursor.execute("INSERT INTO IgnoredSystems VALUES (?, ?)", (id64, expirationTime))
+            self.localDbCursor.execute("INSERT OR REPLACE INTO IgnoredSystems VALUES (?, ?)", (id64, expirationTime))
             self.localDbConnection.commit()
         if handleDbConnection:
             self.closeLocalDatabase()
