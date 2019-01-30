@@ -38,18 +38,25 @@ if __debug__:
     from traceback import print_exc
 
 this = sys.modules[__name__]  # For holding module globals
+
 this.rseData = None  # holding module wide variables
 this.systemCreated = True  # initialize with true in case someone uses an older EDMC version that does not call edsm_notify_system()
+this.enabled = False  # plugin configured correctly and therefore enabled
+
 this.worker = None  # background worker
 this.queue = None  # queue used by the background worker
+
 this.clipboard = None  # (tk.IntVar) copy system name to clipboard
 this.overwrite = None  # (tk.IntVar) overwrite disabled state (EDSM/EDDN disabled)
+this.edsmBodyCheck = None  # (tk.IntVar) in settings; compare total number of bodies to the number known to EDSM
+
 this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
-this.edsmBodyCheck = None  # (tk.Label) compare total number of bodies to the number known to EDSM
-this.enabled = False  # plugin configured correctly and therefore enabled
-this.unconfirmedSystem = None  # (RseHyperlinkLabel) display name of system that needs checking
 this.distanceValue = None  # (tk.Label) distance to system
 this.actionText = None  # (tk.Label) task to do
+this.edsmBodyCountDescription = None  # (tk.Label) description of information about bodies known to EDSM
+this.edsmBodyCountText = None  # (tk.Label) text of information about bodies known to EDSM
+
+this.unconfirmedSystem = None  # (RseHyperlinkLabel) display name of system that needs checking
 
 
 class RseHyperlinkLabel(HyperlinkLabel):
@@ -122,6 +129,13 @@ def updateUI(event=None):
         else:
             this.errorLabel["text"] = message or "?"
 
+    if this.edsmBodyCheck.get():
+        this.edsmBodyCountDescription.grid(row=3, column=0, sticky=tk.W)
+        this.edsmBodyCountText.grid(row=3, column=1, sticky=tk.W)
+    else:
+        this.edsmBodyCountDescription.grid_remove()
+        this.edsmBodyCountText.grid_remove()
+
 
 def plugin_close():
     # Signal thread to close and wait for it
@@ -192,7 +206,10 @@ def showUpdateNotification(event=None):
         text = "Plugin update available"
     this.updateNotificationLabel["url"] = url
     this.updateNotificationLabel["text"] = text
-    this.updateNotificationLabel.grid(row=3, column=0, columnspan=2, sticky=tk.W)
+    if this.edsmBodyCheck.get():
+        this.updateNotificationLabel.grid(column=0, columnspan=2, sticky=tk.W)
+    else:
+        this.updateNotificationLabel.grid(column=0, columnspan=2, sticky=tk.W)
 
 
 def plugin_app(parent):
@@ -212,6 +229,10 @@ def plugin_app(parent):
     tk.Label(this.frame, text="Action:").grid(row=2, column=0, sticky=tk.W)
     this.actionText = tk.Label(this.frame)
     this.actionText.grid(row=2, column=1, sticky=tk.W)
+
+    this.edsmBodyCountDescription = tk.Label(this.frame, text="EDSM body count:")
+    this.edsmBodyCountText = tk.Label(this.frame)
+    this.edsmBodyCountText["text"] = "?"
 
     this.updateNotificationLabel = HyperlinkLabel(this.frame, text="Plugin update available", background=nb.Label().cget("background"),
                                                   url="https://github.com/Thurion/EDSM-RSE-for-EDMC/releases", underline=True)
