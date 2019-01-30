@@ -52,6 +52,7 @@ class RseData:
     # name of events
     EVENT_RSE_UPDATE_AVAILABLE = "<<EDSM-RSE_UpdateAvailable>>"
     EVENT_RSE_BACKGROUNDWORKER = "<<EDSM-RSE_BackgroundWorker>>"
+    EVENT_RSE_EDSM_BODY_COUNT = "<<EDSM-RSE_EdsmBodyCount>>"
 
     # possible caches
     CACHE_IGNORED_SYSTEMS = 1

@@ -102,7 +102,7 @@ def plugin_start(plugin_dir):
     return "EDSM-RSE"
 
 
-def updateUI(event=None):
+def updateUiUnconfirmedSystem(event=None):
     eliteSystem = this.rseData.lastEventInfo.get(RseData.BG_SYSTEM, None)
     message = this.rseData.lastEventInfo.get(RseData.BG_MESSAGE, None)
     if (this.enabled or this.overwrite.get()) and eliteSystem:
@@ -129,7 +129,14 @@ def updateUI(event=None):
         else:
             this.errorLabel["text"] = message or "?"
 
+
+def updateUiEdsmBodyCount(event=None):
+    message = this.rseData.lastEventInfo.get(RseData.BG_MESSAGE, None)
     if this.edsmBodyCheck.get():
+        if message:
+            this.edsmBodyCountText["text"] = message
+        else:
+            this.edsmBodyCountText["text"] = "?"
         this.edsmBodyCountDescription.grid(row=3, column=0, sticky=tk.W)
         this.edsmBodyCountText.grid(row=3, column=1, sticky=tk.W)
     else:
@@ -145,6 +152,7 @@ def plugin_close():
 
 
 def edsmClearCacheCallback():
+    # called when clicked on the clear cache of scanned systems button in settings
     this.queue.put(DeleteSystemsFromCacheTask(this.rseData, RseData.CACHE_FULLY_SCANNED_BODIES))
 
 
@@ -193,7 +201,8 @@ def prefs_changed():
     this.enabled = checkTransmissionOptions()
     this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
 
-    updateUI()
+    updateUiUnconfirmedSystem()
+    updateUiEdsmBodyCount()
 
 
 def showUpdateNotification(event=None):
@@ -214,8 +223,9 @@ def showUpdateNotification(event=None):
 
 def plugin_app(parent):
     this.frame = tk.Frame(parent)
-    this.frame.bind_all(RseData.EVENT_RSE_BACKGROUNDWORKER, updateUI)
+    this.frame.bind_all(RseData.EVENT_RSE_BACKGROUNDWORKER, updateUiUnconfirmedSystem)
     this.frame.bind_all(RseData.EVENT_RSE_UPDATE_AVAILABLE, showUpdateNotification)
+    this.frame.bind_all(RseData.EVENT_RSE_EDSM_BODY_COUNT, updateUiEdsmBodyCount)
 
     this.rseData.setFrame(this.frame)
 
@@ -236,7 +246,8 @@ def plugin_app(parent):
 
     this.updateNotificationLabel = HyperlinkLabel(this.frame, text="Plugin update available", background=nb.Label().cget("background"),
                                                   url="https://github.com/Thurion/EDSM-RSE-for-EDMC/releases", underline=True)
-    updateUI()
+    updateUiUnconfirmedSystem()
+    updateUiEdsmBodyCount()
 
     # start update check after frame is initialized to avoid any possible race conditions when generating the event
     this.queue.put(VersionCheckTask(this.rseData))
@@ -255,8 +266,12 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.rseData.radius = RseData.DEFAULT_RADIUS_EXPONENT
     if entry["event"] == "NavBeaconScan":
         this.queue.put(NavbeaconTask(this.rseData, entry["SystemAddress"]))
-
-    # TODO FSSDiscoveryScan, FSSAllBodiesFound
+    if not this.systemCreated and entry["event"] == "FSSDiscoveryScan":
+        # TODO
+        pass
+    if entry["event"] == "FSSAllBodiesFound":
+        # TODO
+        pass
 
 
 def edsm_notify_system(reply):
