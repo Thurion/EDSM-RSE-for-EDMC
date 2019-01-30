@@ -255,7 +255,7 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
         id64, knownToEdsm = self.queryEdsm()
         if id64 and knownToEdsm:
             if self.bodyCount == knownToEdsm:
-                self.rseData.addSystemToCache(id64, RseData.CACHE_FULLY_SCANNED_BODIES)
+                self.rseData.addSystemToCache(id64, sys.maxint, RseData.CACHE_FULLY_SCANNED_BODIES)
             self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM=knownToEdsm))
         else:
             self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM="?"))
