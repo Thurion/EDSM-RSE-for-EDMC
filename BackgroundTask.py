@@ -205,3 +205,32 @@ class DeleteSystemsFromCacheTask(BackgroundTask):
     def execute(self):
         self.rseData.removeAllSystemsFromCache(self.cacheType)
 
+
+class EdsmBodyCheck(BackgroundTask):
+    def __init__(self, rseData):
+        super(EdsmBodyCheck, self).__init__(rseData)
+
+    def fireEvent(self, message=None):
+        self.rseData.lastEventInfo.clear()
+        self.rseData.lastEventInfo[RseData.BG_MESSAGE] = message or "?"
+        if self.rseData.frame:
+            self.rseData.frame.event_generate(RseData.EVENT_RSE_EDSM_BODY_COUNT, when="tail")  # calls updateUI in main thread
+
+
+class FSSAllBodiesFoundTask(EdsmBodyCheck):
+    def __init__(self, rseData, id64):
+        super(FSSAllBodiesFoundTask, self).__init__(rseData)
+        self.id64 = id64
+
+    def execute(self):
+        pass  # TODO
+        # self.rseData.addSystemToCache(self.id64, RseData.CACHE_FULLY_SCANNED_BODIES)
+
+
+class FSSDiscoveryScan(EdsmBodyCheck):
+    def __init__(self, rseData, systemName):
+        super(FSSAllBodiesFoundTask, self).__init__(rseData)
+        self.systemName = systemName
+
+    def execute(self):
+        pass  # TODO
