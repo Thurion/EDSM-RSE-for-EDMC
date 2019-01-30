@@ -65,7 +65,7 @@ class RseData:
         self.projectsDict = dict()
         self.frame = None
         self.filter = set()  # systems that have been completed
-        self.scannedSystems = set()  # fully scanned systems which don't need checking anymore
+        self.scannedSystems = set()  # fully scanned systems which don't need checking anymore (either on EDSM or scanned by commander)
         self.lastEventInfo = dict()  # used to pass values to UI. don't assign a new value! use clear() instead
         self.radiusExponent = radiusExponent
         self.frame = None
