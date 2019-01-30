@@ -49,6 +49,7 @@ this.queue = None  # queue used by the background worker
 this.clipboard = None  # (tk.IntVar) copy system name to clipboard
 this.overwrite = None  # (tk.IntVar) overwrite disabled state (EDSM/EDDN disabled)
 this.edsmBodyCheck = None  # (tk.IntVar) in settings; compare total number of bodies to the number known to EDSM
+this.systemScanned = False  # variable to prevent spamming the EDSM API
 
 this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
 this.distanceValue = None  # (tk.Label) distance to system
@@ -258,20 +259,27 @@ def plugin_app(parent):
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if not this.enabled and not this.overwrite.get() or is_beta:
         return  # nothing to do here
+    
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
         this.edsmBodyCountText["text"] = "Use discovery scanner"
+        this.systemScanned = False
         if "StarPos" in entry:
             this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, entry["StarPos"], entry["SystemAddress"]))
+
     if entry["event"] == "Resurrect":
         # reset radius in case someone died in an area where there are not many available stars (meaning very large radius)
         this.rseData.radius = RseData.DEFAULT_RADIUS_EXPONENT
+
     if entry["event"] == "NavBeaconScan":
         this.queue.put(BackgroundTask.NavbeaconTask(this.rseData, entry["SystemAddress"]))
+
     if entry["event"] == "FSSDiscoveryScan" and this.edsmBodyCheck.get():
         if this.systemCreated:
             this.edsmBodyCountText["text"] = "Scan all {} bodies".format(entry["BodyCount"])
-        else:
+        elif not this.systemScanned:
             this.queue.put(BackgroundTask.FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"]))
+        this.systemScanned = True
+
     if entry["event"] == "FSSAllBodiesFound" and this.edsmBodyCheck.get():
         this.queue.put(BackgroundTask.FSSAllBodiesFoundTask(this.rseData, entry["SystemAddress"]))
 
