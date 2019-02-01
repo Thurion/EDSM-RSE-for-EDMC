@@ -45,9 +45,10 @@ class RseData:
     PROJECT_NAVBEACON = 2
 
     # keys for dictionary that stores data from the background thread
-    BG_SYSTEM = "bg_system"  # string
-    BG_MESSAGE = "bg_message"  # string
-    BG_JSON = "bg_json"  # if more information is needed: json object
+    BG_RSE_SYSTEM = "bg_rse_system"  # RSE system as string
+    BG_RSE_MESSAGE = "bg_rse_message"  # RSE message as string
+    BG_UPDATE_JSON = "bg_update_json"  # information about available update
+    BG_EDSM_BODY = "bg_edsm_body"  # EDSM body count information as string
 
     # name of events
     EVENT_RSE_UPDATE_AVAILABLE = "<<EDSM-RSE_UpdateAvailable>>"

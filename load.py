@@ -104,8 +104,8 @@ def plugin_start(plugin_dir):
 
 
 def updateUiUnconfirmedSystem(event=None):
-    eliteSystem = this.rseData.lastEventInfo.get(RseData.BG_SYSTEM, None)
-    message = this.rseData.lastEventInfo.get(RseData.BG_MESSAGE, None)
+    eliteSystem = this.rseData.lastEventInfo.get(RseData.BG_RSE_SYSTEM, None)
+    message = this.rseData.lastEventInfo.get(RseData.BG_RSE_MESSAGE, None)
     if (this.enabled or this.overwrite.get()) and eliteSystem:
         this.errorLabel.grid_remove()
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
@@ -132,7 +132,7 @@ def updateUiUnconfirmedSystem(event=None):
 
 
 def updateUiEdsmBodyCount(event=None):
-    message = this.rseData.lastEventInfo.get(RseData.BG_MESSAGE, None)
+    message = this.rseData.lastEventInfo.get(RseData.BG_EDSM_BODY, None)
     if this.edsmBodyCheck.get():
         if message:
             this.edsmBodyCountText["text"] = message
@@ -207,7 +207,7 @@ def prefs_changed():
 
 
 def showUpdateNotification(event=None):
-    updateVersionInfo = this.rseData.lastEventInfo.get(RseData.BG_JSON, None)
+    updateVersionInfo = this.rseData.lastEventInfo.get(RseData.BG_UPDATE_JSON, None)
     if updateVersionInfo:
         url = updateVersionInfo["url"]
         text = "Plugin update to {version} available".format(version=updateVersionInfo["version"])
@@ -281,7 +281,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         if this.systemCreated:
             this.edsmBodyCountText["text"] = "0/{}".format(entry["BodyCount"])
         elif not this.systemScanned:
-            this.queue.put(BackgroundTask.FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"]))
+            this.queue.put(BackgroundTask.FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"], entry["Progress"]))
         this.systemScanned = True
 
     if entry["event"] == "FSSAllBodiesFound" and this.edsmBodyCheck.get():

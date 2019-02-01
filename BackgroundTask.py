@@ -48,11 +48,10 @@ class BackgroundTaskClosestSystem(BackgroundTask):
         super(BackgroundTaskClosestSystem, self).__init__(rseUtils)
 
     def fireEvent(self):
-        self.rseData.lastEventInfo.clear()
         if len(self.rseData.systemList) > 0:
-            self.rseData.lastEventInfo[RseData.BG_SYSTEM] = self.rseData.systemList[0]
+            self.rseData.lastEventInfo[RseData.BG_RSE_SYSTEM] = self.rseData.systemList[0]
         else:
-            self.rseData.lastEventInfo[RseData.BG_MESSAGE] = "No system in range"
+            self.rseData.lastEventInfo[RseData.BG_RSE_MESSAGE] = "No system in range"
         if self.rseData.frame:
             self.rseData.frame.event_generate(RseData.EVENT_RSE_BACKGROUNDWORKER, when="tail")  # calls updateUI in main thread
 
@@ -187,7 +186,7 @@ class VersionCheckTask(BackgroundTask):
             response = urllib2.urlopen(request)
             newVersionInfo = json.loads(response.read())
             if RseData.VERSION != newVersionInfo["version"]:
-                self.rseData.lastEventInfo[RseData.BG_JSON] = newVersionInfo
+                self.rseData.lastEventInfo[RseData.BG_UPDATE_JSON] = newVersionInfo
                 self.rseData.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
         except ValueError:
             pass  # ignore
@@ -216,8 +215,7 @@ class EdsmBodyCheck(BackgroundTask):
         super(EdsmBodyCheck, self).__init__(rseData)
 
     def fireEvent(self, message=None):
-        self.rseData.lastEventInfo.clear()
-        self.rseData.lastEventInfo[RseData.BG_MESSAGE] = message or "?"
+        self.rseData.lastEventInfo[RseData.BG_EDSM_BODY] = message or "?"
         if self.rseData.frame:
             self.rseData.frame.event_generate(RseData.EVENT_RSE_EDSM_BODY_COUNT, when="tail")  # calls updateUI in main thread
 
@@ -233,10 +231,11 @@ class FSSAllBodiesFoundTask(EdsmBodyCheck):
 
 
 class FSSDiscoveryScanTask(EdsmBodyCheck):
-    def __init__(self, rseData, systemName, bodyCount):
+    def __init__(self, rseData, systemName, bodyCount, progress):
         super(FSSDiscoveryScanTask, self).__init__(rseData)
         self.systemName = systemName
         self.bodyCount = bodyCount
+        self.progress = progress
 
     def queryEdsm(self):
         edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=urllib2.quote(self.systemName))
@@ -252,6 +251,11 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
         return None, None  # error/timeout occurred
 
     def execute(self):
+        if self.progress == 1.0:
+            self.fireEvent("System complete")
+            # no need to call EDSM's API here because all bodies are found and will be submitted to EDSM
+            return
+
         id64, knownToEdsm = self.queryEdsm()
         if id64 and knownToEdsm:
             if self.bodyCount == knownToEdsm:
