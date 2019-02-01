@@ -168,8 +168,8 @@ class IgnoreSystemTask(BackgroundTaskClosestSystem):
     def execute(self):
         for system in self.rseData.systemList:
             if system.name.lower() == self.systemName.lower():
-                system.action = 0
-                self.removeSystems()
+                self.rseData.filter.add(system.id)
+                self.rseData.systemList.remove(system)
                 if self.duration > 0:
                     self.rseData.addSystemToCache(system.id, self.duration, RseData.CACHE_IGNORED_SYSTEMS)
                 self.fireEvent()
