@@ -138,8 +138,8 @@ def updateUiEdsmBodyCount(event=None):
             this.edsmBodyCountText["text"] = message
         else:
             this.edsmBodyCountText["text"] = "?"
-        this.edsmBodyCountDescription.grid(row=3, column=0, sticky=tk.W)
-        this.edsmBodyCountText.grid(row=3, column=1, sticky=tk.W)
+        this.edsmBodyCountDescription.grid(row=11, column=0, sticky=tk.W, pady=(10, 0))
+        this.edsmBodyCountText.grid(row=11, column=1, sticky=tk.W, pady=(10, 0))
     else:
         this.edsmBodyCountDescription.grid_remove()
         this.edsmBodyCountText.grid_remove()
@@ -216,10 +216,7 @@ def showUpdateNotification(event=None):
         text = "Plugin update available"
     this.updateNotificationLabel["url"] = url
     this.updateNotificationLabel["text"] = text
-    if this.edsmBodyCheck.get():
-        this.updateNotificationLabel.grid(column=0, columnspan=2, sticky=tk.W)
-    else:
-        this.updateNotificationLabel.grid(column=0, columnspan=2, sticky=tk.W)
+    this.updateNotificationLabel.grid(row=99, column=0, columnspan=2, sticky=tk.W)  # always put in last row
 
 
 def plugin_app(parent):
