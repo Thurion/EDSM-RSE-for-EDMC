@@ -138,8 +138,8 @@ def updateUiEdsmBodyCount(event=None):
             this.edsmBodyCountText["text"] = message
         else:
             this.edsmBodyCountText["text"] = "?"
-        this.edsmBodyCountDescription.grid(row=11, column=0, sticky=tk.W, pady=(10, 0))
-        this.edsmBodyCountText.grid(row=11, column=1, sticky=tk.W, pady=(10, 0))
+        this.edsmBodyCountDescription.grid(row=11, column=0, sticky=tk.W)
+        this.edsmBodyCountText.grid(row=11, column=1, sticky=tk.W)
     else:
         this.edsmBodyCountDescription.grid_remove()
         this.edsmBodyCountText.grid_remove()
