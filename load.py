@@ -40,7 +40,7 @@ if __debug__:
 this = sys.modules[__name__]  # For holding module globals
 
 this.rseData = None  # holding module wide variables
-this.systemCreated = True  # initialize with true in case someone uses an older EDMC version that does not call edsm_notify_system()
+this.systemCreated = False  # initialize with false in case someone uses an older EDMC version that does not call edsm_notify_system()
 this.enabled = False  # plugin configured correctly and therefore enabled
 
 this.worker = None  # background worker
@@ -282,6 +282,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.systemScanned = True
 
     if entry["event"] == "FSSAllBodiesFound" and this.edsmBodyCheck.get():
+        this.systemScanned = True
         this.queue.put(BackgroundTask.FSSAllBodiesFoundTask(this.rseData, entry["SystemAddress"]))
 
 
