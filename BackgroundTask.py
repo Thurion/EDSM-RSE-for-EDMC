@@ -56,7 +56,7 @@ class BackgroundTaskClosestSystem(BackgroundTask):
             self.rseData.frame.event_generate(RseData.EVENT_RSE_BACKGROUNDWORKER, when="tail")  # calls updateUI in main thread
 
     def getSystemFromID(self, id64):
-        system = filter(lambda x: x.id == id64, self.rseData.systemList)[
+        system = filter(lambda x: x.id64 == id64, self.rseData.systemList)[
                  :1]  # there is only one possible match for ID64, avoid exception being thrown
         if len(system) > 0:
             return system[0]
@@ -64,14 +64,14 @@ class BackgroundTaskClosestSystem(BackgroundTask):
             return None
 
     def removeSystems(self):
-        removeMe = filter(lambda x: x.action == 0, self.rseData.systemList)
+        removeMe = filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList)
         if __debug__: print(
             "adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]))
         self.rseData.systemList = [x for x in self.rseData.systemList if x not in removeMe]
         self.rseData.openLocalDatabase()
         for system in removeMe:
-            self.rseData.filter.add(system.id)
-            self.rseData.addSystemToCache(system.id, time.time() + 24 * 3600, RseData.CACHE_IGNORED_SYSTEMS, handleDbConnection=False)
+            self.rseData.filter.add(system.id64)
+            self.rseData.addSystemToCache(system.id64, time.time() + 24 * 3600, RseData.CACHE_IGNORED_SYSTEMS, handleDbConnection=False)
         self.rseData.closeLocalDatabase()
 
 

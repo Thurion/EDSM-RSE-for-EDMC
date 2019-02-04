@@ -21,13 +21,85 @@ import plug
 import sys
 import os
 import time
+import math
 import psycopg2
 import sqlite3
 
-from EliteSystem import EliteSystem
+
+class RseProject(object):
+    def __init__(self, projectId, actionText, enabled):
+        self.projectId = projectId
+        self.actionText = actionText
+        self.enabled = enabled
 
 
-class RseData:
+class EliteSystem(object):
+    def __init__(self, id64, name, x, y, z, uncertainty=0):
+        self.id64 = id64
+        self.name = name
+        self.x = x
+        self.y = y
+        self.z = z
+        self.uncertainty = uncertainty
+        self.distance = 10000  # set initial value to be out of reach
+        self.__rseProjects = dict()
+
+    @staticmethod
+    def calculateDistance(x1, x2, y1, y2, z1, z2):
+        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
+
+    def updateDistanceToCurrentCommanderPosition(self, x, y, z):
+        self.distance = self.calculateDistanceToCoordinates(x, y, z)
+
+    def calculateDistanceToCoordinates(self, x2, y2, z2):
+        return self.calculateDistance(self.x, x2, self.y, y2, self.z, z2)
+
+    def removeFromProject(self, projectId):
+        if projectId in self.__rseProjects:
+            self.__rseProjects.remove(projectId)
+
+    def removeFromAllProjects(self):
+        self.__rseProjects.clear()
+
+    def addToProject(self, rseProject):
+        self.__rseProjects.setdefault(rseProject.projectId, rseProject)
+
+    def addToProjects(self, rseProjects):
+        for rseProject in rseProjects:
+            self.addToProject(rseProject)
+
+    def getProjectIds(self):
+        return self.__rseProjects.keys()
+
+    def calculateDistanceToSystem(self, system2):
+        return self.calculateDistanceToCoordinates(system2.x, system2.y, system2.z)
+
+    def getActionText(self):
+        if len(self.__rseProjects) > 0:
+            return ", ".join([rseProject.actionText for rseProject in self.__rseProjects.values()])
+        else:
+            return ""
+
+    def __str__(self):
+        return "id64: {id64}, name: {name}, distance: {distance:,.2f}, uncertainty: {uncertainty}"\
+            .format(id64=self.id64, name=self.name, distance=self.distance, uncertainty=self.uncertainty)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.id64 == other.id64
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.id64)
+
+
+class RseData(object):
 
     VERSION = "1.1"
     VERSION_CHECK_URL = "https://gist.githubusercontent.com/Thurion/35553c9562297162a86722a28c7565ab/raw/RSE_update_info"
@@ -159,17 +231,16 @@ class RseData:
             "z2": z + self.calculateRadius(self.radiusExponent)
         })
         for _row in self.remoteDbCursor.fetchall():
-            _, name, x2, y2, z2, uncertainty, action = _row
+            id64, name, x2, y2, z2, uncertainty, action = _row
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= self.calculateRadius(self.radiusExponent):
-                eliteSystem = EliteSystem(*_row)
+                eliteSystem = EliteSystem(id64, name, x, y, z, uncertainty)
+                eliteSystem.addToProjects([rseProject for rseProject in self.projectsDict.values() if action & rseProject.projectId])
                 eliteSystem.distance = distance
-                eliteSystem.action_text = ", ".join(
-                    [self.projectsDict[project] for project in self.projectsDict.keys() if (eliteSystem.action & project) == project])
                 systems.append(eliteSystem)
 
         # filter out systems that have been completed or are ignored
-        systems = filter(lambda system: system.id not in self.filter, systems)
+        systems = filter(lambda system: system.id64 not in self.filter, systems)
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
@@ -262,8 +333,7 @@ class RseData:
         if self.isRemoteDatabaseAccessible():
             if len(self.projectsDict) == 0:
                 self.remoteDbCursor.execute("SELECT id, action_text, enabled FROM projects")
-                self.projectsDict = dict()
                 for _row in self.remoteDbCursor.fetchall():
-                    _id, action_text, enabled = _row
-                    self.projectsDict[_id] = action_text
+                    rseProject = RseProject(*_row)
+                    self.projectsDict[rseProject.projectId] = rseProject
             self.closeRemoteDatabase()

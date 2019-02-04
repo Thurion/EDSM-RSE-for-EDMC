@@ -116,7 +116,7 @@ def updateUiUnconfirmedSystem(event=None):
         if eliteSystem.uncertainty > 0:
             distanceText = distanceText + u" (\u00B1{uncertainty})".format(uncertainty=eliteSystem.uncertainty)
         this.distanceValue["text"] = distanceText
-        this.actionText["text"] = eliteSystem.action_text
+        this.actionText["text"] = eliteSystem.getActionText()
         if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(eliteSystem.name)
