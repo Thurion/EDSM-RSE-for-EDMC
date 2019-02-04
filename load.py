@@ -46,9 +46,9 @@ this.enabled = False  # plugin configured correctly and therefore enabled
 this.worker = None  # background worker
 this.queue = None  # queue used by the background worker
 
-this.clipboard = None  # (tk.IntVar) copy system name to clipboard
-this.overwrite = None  # (tk.IntVar) overwrite disabled state (EDSM/EDDN disabled)
-this.edsmBodyCheck = None  # (tk.IntVar) in settings; compare total number of bodies to the number known to EDSM
+this.clipboard = None  # (tk.BooleanVar) copy system name to clipboard
+this.overwrite = None  # (tk.BooleanVar) overwrite disabled state (EDSM/EDDN disabled)
+this.edsmBodyCheck = None  # (tk.BooleanVar) in settings; compare total number of bodies to the number known to EDSM
 this.systemScanned = False  # variable to prevent spamming the EDSM API
 
 this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
@@ -86,10 +86,10 @@ def checkTransmissionOptions():
 
 def plugin_start(plugin_dir):
     this.rseData = RseData(plugin_dir)
-    settings = config.getint("EDSM-RSE") or 5  # default setting: radius 0 is currently not selectable
-    this.clipboard = tk.IntVar(value=((settings >> 5) & 0x01))
-    this.overwrite = tk.IntVar(value=((settings >> 6) & 0x01))
-    this.edsmBodyCheck = tk.IntVar(value=((settings >> 7) & 0x01))
+    settings = config.getint("EDSM-RSE") or 0  # default setting
+    this.clipboard = tk.BooleanVar(value=((settings >> 5) & 0x01))
+    this.overwrite = tk.BooleanVar(value=((settings >> 6) & 0x01))
+    this.edsmBodyCheck = tk.BooleanVar(value=not ((settings >> 7) & 0x01))  # invert to be on by default
 
     this.enabled = checkTransmissionOptions()
 
@@ -175,6 +175,7 @@ def plugin_prefs(parent):
     nb.Checkbutton(frame, variable=this.edsmBodyCheck,
                    text="Check if body information on EDSM is incomplete").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     nb.Button(frame, text="Clear cache of scanned systems", command=edsmClearCacheCallback).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Checkbutton(frame, variable=this.clipboard,
                    text="Copy system name to clipboard after jump").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
@@ -196,8 +197,8 @@ def prefs_changed():
     # 4-5 interval, not used anymore
     # 6: copy to clipboard
     # 7: overwrite enabled status
-    # 8: EDSM body check
-    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | (this.edsmBodyCheck.get() << 7)
+    # 8: EDSM body check, value inverted
+    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | ((not this.edsmBodyCheck.get()) << 7)
     config.set("EDSM-RSE", settings)
     this.enabled = checkTransmissionOptions()
     this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
