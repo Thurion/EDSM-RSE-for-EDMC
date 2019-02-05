@@ -51,6 +51,7 @@ class BackgroundTaskClosestSystem(BackgroundTask):
         if len(self.rseData.systemList) > 0:
             self.rseData.lastEventInfo[RseData.BG_RSE_SYSTEM] = self.rseData.systemList[0]
         else:
+            self.rseData.lastEventInfo[RseData.BG_RSE_SYSTEM] = None
             self.rseData.lastEventInfo[RseData.BG_RSE_MESSAGE] = "No system in range"
         if self.rseData.frame:
             self.rseData.frame.event_generate(RseData.EVENT_RSE_BACKGROUNDWORKER, when="tail")  # calls updateUI in main thread
