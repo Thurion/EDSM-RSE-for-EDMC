@@ -57,8 +57,7 @@ class BackgroundTaskClosestSystem(BackgroundTask):
             self.rseData.frame.event_generate(RseData.EVENT_RSE_BACKGROUNDWORKER, when="tail")  # calls updateUI in main thread
 
     def getSystemFromID(self, id64):
-        system = filter(lambda x: x.id64 == id64, self.rseData.systemList)[
-                 :1]  # there is only one possible match for ID64, avoid exception being thrown
+        system = filter(lambda x: x.id64 == id64, self.rseData.systemList)[:1]  # there is only one possible match for ID64, avoid exception being thrown
         if len(system) > 0:
             return system[0]
         else:
@@ -90,10 +89,10 @@ class NavbeaconTask(BackgroundTaskClosestSystem):
 
 
 class JumpedSystemTask(BackgroundTaskClosestSystem):
-    def __init__(self, rseUtils, coordinates, systemAddress):
-        super(JumpedSystemTask, self).__init__(rseUtils)
-        self.coordinates = coordinates
-        self.systemAddress = systemAddress
+    def __init__(self, rseData, eliteSystem):
+        super(JumpedSystemTask, self).__init__(rseData)
+        self.coordinates = (eliteSystem.x, eliteSystem.y, eliteSystem.z)
+        self.systemAddress = eliteSystem.id64
 
     def queryEDSM(self, systems):
         # TODO: use a cache
@@ -151,13 +150,14 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                     lowerLimit += RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
                     upperLimit += RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
 
-            self.fireEvent()
-
         else:
             # distances need to be recalculated because we couldn't get a new list from the database
             for system in self.rseData.systemList:
                 system.updateDistanceToCurrentCommanderPosition(*self.coordinates)
             self.rseData.systemList.sort(key=lambda l: l.distance)
+
+        self.rseData.adjustRadiusExponent(len(self.rseData.systemList))
+        self.fireEvent()
 
 
 class IgnoreSystemTask(BackgroundTaskClosestSystem):

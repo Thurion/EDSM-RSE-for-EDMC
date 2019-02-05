@@ -137,17 +137,18 @@ class RseData(object):
         self.pluginDir = pluginDir
         self.newVersionInfo = None
         self.systemList = list()  # nearby systems, sorted by distance
-        self.projectsDict = dict()
+        self.projectsDict = dict()  # key = ID, value = RseProject
         self.frame = None
         self.filter = set()  # systems that have been completed
         self.scannedSystems = set()  # fully scanned systems which don't need checking anymore (either on EDSM or scanned by commander)
         self.lastEventInfo = dict()  # used to pass values to UI. don't assign a new value! use clear() instead
         self.radiusExponent = radiusExponent
-        self.frame = None
+        self.frame = None  # tk frame
         self.remoteDbCursor = None
         self.remoteDbConnection = None
         self.localDbCursor = None
         self.localDbConnection = None
+        self.ignoredProjectsFlags = 0  # bit mask of ignored projects (AND of all their IDs)
 
     def setFrame(self, frame):
         self.frame = frame
@@ -193,49 +194,71 @@ class RseData(object):
     def isLocalDatabaseAccessible(self):
         return hasattr(self, "localDbCursor") and self.localDbCursor
 
-    def adjustRadius(self, numberOfSystems):
+    def adjustRadiusExponent(self, numberOfSystems):
         if numberOfSystems <= RseData.RADIUS_ADJUSTMENT_INCREASE:
             self.radiusExponent += 1
             if self.radiusExponent > RseData.MAX_RADIUS:
                 self.radiusExponent = 10
-            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius(self.radiusExponent)))
+            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
             self.radiusExponent -= 1
             if self.radiusExponent < 0:
                 self.radiusExponent = 0
-            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius(self.radiusExponent)))
+            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
 
-    def calculateRadius(self, value):
-        return 39 + 11 * (2 ** value)
+    def calculateRadius(self):
+        return 39 + 11 * (2 ** self.radiusExponent)
+
+    def generateIgnoredActionsList(self):
+        enabledFlags = set()
+        combinedIgnoredFlags = self.ignoredProjectsFlags
+
+        for rseProject in self.projectsDict.values():
+            if not rseProject.enabled:
+                combinedIgnoredFlags = combinedIgnoredFlags | rseProject.projectId
+        for i in range(1, (2 ** len(self.projectsDict.values()))):  # generate all possible bit masks
+            flag = i & ~combinedIgnoredFlags
+            if flag > 0:
+                enabledFlags.add(flag)
+        return enabledFlags
 
     def generateListsFromRemoteDatabase(self, x, y, z, handleDbConnection=True):
         if handleDbConnection:
             self.openRemoteDatabase()
 
-        if not self.isRemoteDatabaseAccessible():
+        enabledFlags = self.generateIgnoredActionsList()
+        if not self.isRemoteDatabaseAccessible() or len(enabledFlags) == 0:
             return False
+
+        queryDictionary = {
+            "x1": x - self.calculateRadius(),
+            "x2": x + self.calculateRadius(),
+            "y1": y - self.calculateRadius(),
+            "y2": y + self.calculateRadius(),
+            "z1": z - self.calculateRadius(),
+            "z2": z + self.calculateRadius()}
+
+        whereCondition = ""
+        if len(enabledFlags) == 2 ** len(self.projectsDict.values()):  # all projects are enabled
+            whereCondition = "deleted_at IS NULL;"
+        else:
+            whereCondition = "deleted_at IS NULL AND action_todo = ANY(%(flags)s);"
+            queryDictionary.setdefault("flags", list(enabledFlags))
 
         sql = " ".join([
             "SELECT id, name, x, y, z, uncertainty, action_todo FROM systems WHERE",
             "systems.x BETWEEN %(x1)s AND %(x2)s AND",
             "systems.y BETWEEN %(y1)s AND %(y2)s AND",
             "systems.z BETWEEN %(z1)s AND %(z2)s AND",
-            "deleted_at IS NULL;"
+            whereCondition
         ])
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
-        self.remoteDbCursor.execute(sql, {
-            "x1": x - self.calculateRadius(self.radiusExponent),
-            "x2": x + self.calculateRadius(self.radiusExponent),
-            "y1": y - self.calculateRadius(self.radiusExponent),
-            "y2": y + self.calculateRadius(self.radiusExponent),
-            "z1": z - self.calculateRadius(self.radiusExponent),
-            "z2": z + self.calculateRadius(self.radiusExponent)
-        })
+        self.remoteDbCursor.execute(sql, queryDictionary)
         for _row in self.remoteDbCursor.fetchall():
             id64, name, x2, y2, z2, uncertainty, action = _row
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
-            if distance <= self.calculateRadius(self.radiusExponent):
+            if distance <= self.calculateRadius():
                 eliteSystem = EliteSystem(id64, name, x, y, z, uncertainty)
                 eliteSystem.addToProjects([rseProject for rseProject in self.projectsDict.values() if action & rseProject.projectId])
                 eliteSystem.distance = distance
@@ -246,7 +269,6 @@ class RseData(object):
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
-        self.adjustRadius(len(self.systemList))
 
         if handleDbConnection:
             self.closeRemoteDatabase()

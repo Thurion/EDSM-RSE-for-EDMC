@@ -30,7 +30,7 @@ import myNotebook as nb
 from l10n import Locale
 from config import config
 
-from RseData import RseData
+from RseData import RseData, EliteSystem
 from Backgroundworker import BackgroundWorker
 import BackgroundTask as BackgroundTask
 
@@ -45,7 +45,7 @@ this.CONFIG_MAIN = "EDSM-RSE"
 this.rseData = None  # holding module wide variables
 this.systemCreated = False  # initialize with false in case someone uses an older EDMC version that does not call edsm_notify_system()
 this.enabled = False  # plugin configured correctly and therefore enabled
-this.ignoredProjectsFlags = 0  # bit mask of ignored projects (AND of all their IDs)
+this.currentSystem = None  # (EliteSystem) current system
 
 this.worker = None  # background worker
 this.queue = None  # queue used by the background worker
@@ -93,7 +93,7 @@ def checkTransmissionOptions():
 def plugin_start(plugin_dir):
     this.rseData = RseData(plugin_dir)
     settings = config.getint(this.CONFIG_MAIN) or 0  # default setting
-    this.ignoredProjectsFlags = config.getint(this.CONFIG_IGNORED_PROJECTS)
+    this.rseData.ignoredProjectsFlags = config.getint(this.CONFIG_IGNORED_PROJECTS)
     this.clipboard = tk.BooleanVar(value=((settings >> 5) & 0x01))
     this.overwrite = tk.BooleanVar(value=((settings >> 6) & 0x01))
     this.edsmBodyCheck = tk.BooleanVar(value=not ((settings >> 7) & 0x01))  # invert to be on by default
@@ -185,7 +185,7 @@ def plugin_prefs(parent):
 
     nb.Label(frame, text="Please choose which project to enable").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     for rseProject in this.rseData.projectsDict.values():
-        invertedFlag = not (this.ignoredProjectsFlags & rseProject.projectId == rseProject.projectId)
+        invertedFlag = not (this.rseData.ignoredProjectsFlags & rseProject.projectId == rseProject.projectId)
         variable = this.ignoredProjectsCheckboxes.setdefault(rseProject.projectId, tk.BooleanVar(value=invertedFlag))
         text = rseProject.name
         if not rseProject.enabled:
@@ -220,13 +220,20 @@ def prefs_changed():
     this.enabled = checkTransmissionOptions()
     this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
 
+    oldFlags = this.rseData.ignoredProjectsFlags
     for k, v in this.ignoredProjectsCheckboxes.items():
         if not v.get():  # inverted, user wants to ignore this project
-            this.ignoredProjectsFlags = this.ignoredProjectsFlags | k
+            this.rseData.ignoredProjectsFlags = this.rseData.ignoredProjectsFlags | k
         else:
-            this.ignoredProjectsFlags = this.ignoredProjectsFlags & (0xFFFFFFFF - k)
+            this.rseData.ignoredProjectsFlags = this.rseData.ignoredProjectsFlags & (0xFFFFFFFF - k)  # DWord = 32 bit
 
-    config.set(this.CONFIG_IGNORED_PROJECTS, this.ignoredProjectsFlags)
+    if oldFlags != this.rseData.ignoredProjectsFlags:
+        this.rseData.radius = RseData.DEFAULT_RADIUS_EXPONENT  # reset radius just in case
+        if this.currentSystem:
+            this.rseData.systemList = list()  # clear list in case there is no system nearby
+            this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, this.currentSystem))
+
+    config.set(this.CONFIG_IGNORED_PROJECTS, this.rseData.ignoredProjectsFlags)
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()
@@ -291,7 +298,8 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             this.edsmBodyCountText["text"] = "Use discovery scanner"
             this.systemScanned = False
         if "StarPos" in entry:
-            this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, entry["StarPos"], entry["SystemAddress"]))
+            this.currentSystem = EliteSystem(entry["SystemAddress"], entry["StarSystem"], *entry["StarPos"])
+            this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, this.currentSystem))
 
     if entry["event"] == "Resurrect":
         # reset radius in case someone died in an area where there are not many available stars (meaning very large radius)
