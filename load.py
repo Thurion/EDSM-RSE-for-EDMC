@@ -56,6 +56,7 @@ this.overwrite = None  # (tk.BooleanVar) overwrite disabled state (EDSM/EDDN dis
 this.edsmBodyCheck = None  # (tk.BooleanVar) in settings; compare total number of bodies to the number known to EDSM
 this.systemScanned = False  # variable to prevent spamming the EDSM API
 this.ignoredProjectsCheckboxes = dict()  # dict of tk.BooleanVar. key = project ID, value = tk.BooleanVar
+this.row = 0
 
 # ui elements in main window
 this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
@@ -166,13 +167,11 @@ def edsmClearCacheCallback():
 
 def plugin_prefs(parent):
     PADX = 5
-    global row
-    row = 0
+    this.row = 0
 
     def nextRow():
-        global row
-        row += 1
-        return row
+        this.row += 1
+        return this.row
 
     frame = nb.Frame(parent)
     frame.columnconfigure(0, weight=1)
