@@ -44,8 +44,8 @@ class BackgroundTask(object):
 
 
 class BackgroundTaskClosestSystem(BackgroundTask):
-    def __init__(self, rseUtils):
-        super(BackgroundTaskClosestSystem, self).__init__(rseUtils)
+    def __init__(self, rseData):
+        super(BackgroundTaskClosestSystem, self).__init__(rseData)
 
     def fireEvent(self):
         if len(self.rseData.systemList) > 0:
@@ -76,8 +76,8 @@ class BackgroundTaskClosestSystem(BackgroundTask):
 
 
 class NavbeaconTask(BackgroundTaskClosestSystem):
-    def __init__(self, rseUtils, systemAddress):
-        super(NavbeaconTask, self).__init__(rseUtils)
+    def __init__(self, rseData, systemAddress):
+        super(NavbeaconTask, self).__init__(rseData)
         self.systemAddress = systemAddress
 
     def execute(self):
