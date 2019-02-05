@@ -37,12 +37,14 @@ class BackgroundWorker(Thread):
         if __debug__:
             print("timerTask triggered")
         self.timer = Timer(self.interval, self.timerTask)
+        self.timer.daemon = True
         self.timer.start()
         self.queue.put(TimedTask(self.rseData))
 
     def run(self):
         self.rseData.initialize()
         self.timer = Timer(self.interval, self.timerTask)
+        self.timer.daemon = True
         self.timer.start()
         while True:
             task = self.queue.get()
