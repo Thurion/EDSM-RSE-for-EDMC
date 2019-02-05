@@ -56,7 +56,6 @@ this.overwrite = None  # (tk.BooleanVar) overwrite disabled state (EDSM/EDDN dis
 this.edsmBodyCheck = None  # (tk.BooleanVar) in settings; compare total number of bodies to the number known to EDSM
 this.systemScanned = False  # variable to prevent spamming the EDSM API
 this.ignoredProjectsCheckboxes = dict()  # dict of tk.BooleanVar. key = project ID, value = tk.BooleanVar
-this.row = 0
 
 # ui elements in main window
 this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
@@ -167,43 +166,38 @@ def edsmClearCacheCallback():
 
 def plugin_prefs(parent):
     PADX = 5
-    this.row = 0
-
-    def nextRow():
-        this.row += 1
-        return this.row
 
     frame = nb.Frame(parent)
     frame.columnconfigure(0, weight=1)
 
     nb.Checkbutton(frame, variable=this.edsmBodyCheck,
-                   text="Check if body information on EDSM is incomplete").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
-    nb.Button(frame, text="Clear cache of scanned systems", command=edsmClearCacheCallback).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+                   text="Check if body information on EDSM is incomplete").grid(padx=PADX, sticky=tk.W)
+    nb.Button(frame, text="Clear cache of scanned systems", command=edsmClearCacheCallback).grid(padx=PADX, sticky=tk.W)
 
-    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX * 2, pady=8, sticky=tk.EW)
+    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
 
-    nb.Label(frame, text="Please choose which project to enable").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    nb.Label(frame, text="Please choose which projects to enable").grid(padx=PADX, sticky=tk.W)
     for rseProject in this.rseData.projectsDict.values():
         invertedFlag = not (this.rseData.ignoredProjectsFlags & rseProject.projectId == rseProject.projectId)
         variable = this.ignoredProjectsCheckboxes.setdefault(rseProject.projectId, tk.BooleanVar(value=invertedFlag))
         text = rseProject.name
         if not rseProject.enabled:
             text += " (globally disabled)"
-        nb.Checkbutton(frame, variable=variable, text=text).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
-        nb.Label(frame, text=rseProject.explanation).grid(row=nextRow(), column=0, columnspan=2, padx=PADX * 4, sticky=tk.W)
+        nb.Checkbutton(frame, variable=variable, text=text).grid(padx=PADX, sticky=tk.W)
+        nb.Label(frame, text=rseProject.explanation).grid(padx=PADX * 4, sticky=tk.W)
 
-    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX * 2, pady=8, sticky=tk.EW)
+    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Checkbutton(frame, variable=this.clipboard,
-                   text="Copy system name to clipboard after jump").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+                   text="Copy system name to clipboard after jump").grid(padx=PADX, sticky=tk.W)
     nb.Checkbutton(frame, variable=this.overwrite,
-                   text="I use another tool to transmit data to EDSM/EDDN").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+                   text="I use another tool to transmit data to EDSM/EDDN").grid(padx=PADX, sticky=tk.W)
 
-    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX * 2, pady=8, sticky=tk.EW)
-    nb.Label(frame, text="Plugin Version: {}".format(RseData.VERSION)).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
+    nb.Label(frame, text="Plugin Version: {}".format(RseData.VERSION)).grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"),
-                   url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+                   url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"),
-                   url="http://edts.thargoid.space/", underline=True).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+                   url="http://edts.thargoid.space/", underline=True).grid(padx=PADX, sticky=tk.W)
     return frame
 
 
