@@ -27,9 +27,11 @@ import sqlite3
 
 
 class RseProject(object):
-    def __init__(self, projectId, actionText, enabled):
+    def __init__(self, projectId, actionText, name, explanation, enabled):
         self.projectId = projectId
         self.actionText = actionText
+        self.name = name
+        self.explanation = explanation
         self.enabled = enabled
 
 
@@ -332,7 +334,7 @@ class RseData(object):
         self.openRemoteDatabase()
         if self.isRemoteDatabaseAccessible():
             if len(self.projectsDict) == 0:
-                self.remoteDbCursor.execute("SELECT id, action_text, enabled FROM projects")
+                self.remoteDbCursor.execute("SELECT id, action_text, project_name, explanation, enabled FROM projects")
                 for _row in self.remoteDbCursor.fetchall():
                     rseProject = RseProject(*_row)
                     self.projectsDict[rseProject.projectId] = rseProject

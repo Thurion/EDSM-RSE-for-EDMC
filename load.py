@@ -39,24 +39,30 @@ if __debug__:
 
 this = sys.modules[__name__]  # For holding module globals
 
+this.CONFIG_IGNORED_PROJECTS = "EDSM-RSE_ignoredProjects"
+this.CONFIG_MAIN = "EDSM-RSE"
+
 this.rseData = None  # holding module wide variables
 this.systemCreated = False  # initialize with false in case someone uses an older EDMC version that does not call edsm_notify_system()
 this.enabled = False  # plugin configured correctly and therefore enabled
+this.ignoredProjectsFlags = 0  # bit mask of ignored projects (AND of all their IDs)
 
 this.worker = None  # background worker
 this.queue = None  # queue used by the background worker
 
+# ui elements in options
 this.clipboard = None  # (tk.BooleanVar) copy system name to clipboard
 this.overwrite = None  # (tk.BooleanVar) overwrite disabled state (EDSM/EDDN disabled)
 this.edsmBodyCheck = None  # (tk.BooleanVar) in settings; compare total number of bodies to the number known to EDSM
 this.systemScanned = False  # variable to prevent spamming the EDSM API
+this.ignoredProjectsCheckboxes = dict()  # dict of tk.BooleanVar. key = project ID, value = tk.BooleanVar
 
+# ui elements in main window
 this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
 this.distanceValue = None  # (tk.Label) distance to system
 this.actionText = None  # (tk.Label) task to do
 this.edsmBodyCountDescription = None  # (tk.Label) description of information about bodies known to EDSM
 this.edsmBodyCountText = None  # (tk.Label) text of information about bodies known to EDSM
-
 this.unconfirmedSystem = None  # (RseHyperlinkLabel) display name of system that needs checking
 
 
@@ -86,7 +92,8 @@ def checkTransmissionOptions():
 
 def plugin_start(plugin_dir):
     this.rseData = RseData(plugin_dir)
-    settings = config.getint("EDSM-RSE") or 0  # default setting
+    settings = config.getint(this.CONFIG_MAIN) or 0  # default setting
+    this.ignoredProjectsFlags = config.getint(this.CONFIG_IGNORED_PROJECTS)
     this.clipboard = tk.BooleanVar(value=((settings >> 5) & 0x01))
     this.overwrite = tk.BooleanVar(value=((settings >> 6) & 0x01))
     this.edsmBodyCheck = tk.BooleanVar(value=not ((settings >> 7) & 0x01))  # invert to be on by default
@@ -170,11 +177,21 @@ def plugin_prefs(parent):
     frame = nb.Frame(parent)
     frame.columnconfigure(0, weight=1)
 
-    row = 0
-
     nb.Checkbutton(frame, variable=this.edsmBodyCheck,
                    text="Check if body information on EDSM is incomplete").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
     nb.Button(frame, text="Clear cache of scanned systems", command=edsmClearCacheCallback).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+
+    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX * 2, pady=8, sticky=tk.EW)
+
+    nb.Label(frame, text="Please choose which project to enable").grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+    for rseProject in this.rseData.projectsDict.values():
+        invertedFlag = not (this.ignoredProjectsFlags & rseProject.projectId == rseProject.projectId)
+        variable = this.ignoredProjectsCheckboxes.setdefault(rseProject.projectId, tk.BooleanVar(value=invertedFlag))
+        text = rseProject.name
+        if not rseProject.enabled:
+            text += " (globally disabled)"
+        nb.Checkbutton(frame, variable=variable, text=text).grid(row=nextRow(), column=0, columnspan=2, padx=PADX, sticky=tk.W)
+        nb.Label(frame, text=rseProject.explanation).grid(row=nextRow(), column=0, columnspan=2, padx=PADX * 4, sticky=tk.W)
 
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=nextRow(), columnspan=2, padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Checkbutton(frame, variable=this.clipboard,
@@ -199,9 +216,17 @@ def prefs_changed():
     # 7: overwrite enabled status
     # 8: EDSM body check, value inverted
     settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | ((not this.edsmBodyCheck.get()) << 7)
-    config.set("EDSM-RSE", settings)
+    config.set(this.CONFIG_MAIN, settings)
     this.enabled = checkTransmissionOptions()
     this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
+
+    for k, v in this.ignoredProjectsCheckboxes.items():
+        if not v.get():  # inverted, user wants to ignore this project
+            this.ignoredProjectsFlags = this.ignoredProjectsFlags | k
+        else:
+            this.ignoredProjectsFlags = this.ignoredProjectsFlags & (0xFFFFFFFF - k)
+
+    config.set(this.CONFIG_IGNORED_PROJECTS, this.ignoredProjectsFlags)
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()
