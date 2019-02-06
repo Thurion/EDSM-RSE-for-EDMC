@@ -58,7 +58,7 @@ class EliteSystem(object):
 
     def removeFromProject(self, projectId):
         if projectId in self.__rseProjects:
-            self.__rseProjects.remove(projectId)
+            del self.__rseProjects[projectId]
 
     def removeFromAllProjects(self):
         self.__rseProjects.clear()
