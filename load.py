@@ -61,7 +61,7 @@ this.ignoredProjectsCheckboxes = dict()  # dict of tk.BooleanVar. key = project 
 this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
 this.distanceValue = None  # (tk.Label) distance to system
 this.actionText = None  # (tk.Label) task to do
-this.edsmBodyCountDescription = None  # (tk.Label) description of information about bodies known to EDSM
+this.edsmBodyFrame = None  # (tk.Frame) frame containing all UI elements for EDSM body count
 this.edsmBodyCountText = None  # (tk.Label) text of information about bodies known to EDSM
 this.unconfirmedSystem = None  # (RseHyperlinkLabel) display name of system that needs checking
 
@@ -145,11 +145,9 @@ def updateUiEdsmBodyCount(event=None):
             this.edsmBodyCountText["text"] = message
         else:
             this.edsmBodyCountText["text"] = "?"
-        this.edsmBodyCountDescription.grid(row=11, column=0, sticky=tk.W)
-        this.edsmBodyCountText.grid(row=11, column=1, sticky=tk.W)
+        this.edsmBodyFrame.grid(row=11, columnspan=2, sticky=tk.EW)
     else:
-        this.edsmBodyCountDescription.grid_remove()
-        this.edsmBodyCountText.grid_remove()
+        this.edsmBodyFrame.grid_remove()
 
 
 def plugin_close():
@@ -264,9 +262,13 @@ def plugin_app(parent):
     this.actionText = tk.Label(this.frame)
     this.actionText.grid(row=2, column=1, sticky=tk.W)
 
-    this.edsmBodyCountDescription = tk.Label(this.frame, text="EDSM Bodies:")
-    this.edsmBodyCountText = tk.Label(this.frame)
+    this.edsmBodyFrame = tk.Frame(this.rseData.frame)
+    this.edsmBodyFrame.columnconfigure(1, weight=1)
+    tk.Frame(this.edsmBodyFrame, highlightthickness=1).grid(row=0, pady=3, columnspan=2, sticky=tk.EW)  # separator
+    tk.Label(this.edsmBodyFrame, text="EDSM Bodies:").grid(row=1, column=0, sticky=tk.W)
+    this.edsmBodyCountText = tk.Label(this.edsmBodyFrame)
     this.edsmBodyCountText["text"] = "?"
+    this.edsmBodyCountText.grid(row=1, column=1, sticky=tk.W)
 
     this.updateNotificationLabel = HyperlinkLabel(this.frame, text="Plugin update available", background=nb.Label().cget("background"),
                                                   url="https://github.com/Thurion/EDSM-RSE-for-EDMC/releases", underline=True)
