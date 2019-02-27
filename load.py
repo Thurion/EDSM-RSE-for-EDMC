@@ -23,6 +23,7 @@ import time
 from Queue import Queue
 
 import Tkinter as tk
+import tkMessageBox
 import ttk
 from ttkHyperlinkLabel import HyperlinkLabel
 import myNotebook as nb
@@ -157,9 +158,11 @@ def plugin_close():
     this.worker = None
 
 
-def edsmClearCacheCallback():
+def clearScannedSystemsCacheCallback(cacheType, name):
     # called when clicked on the clear cache of scanned systems button in settings
-    this.queue.put(BackgroundTask.DeleteSystemsFromCacheTask(this.rseData, RseData.CACHE_FULLY_SCANNED_BODIES))
+    result = tkMessageBox.askquestion("Delete " + name, "Do you really want to delete all {}?\nThis cannot be undone.".format(name), icon='warning')
+    if result == 'yes':
+        this.queue.put(BackgroundTask.DeleteSystemsFromCacheTask(this.rseData, cacheType))
 
 
 def plugin_prefs(parent):
@@ -169,11 +172,10 @@ def plugin_prefs(parent):
     frame.columnconfigure(0, weight=1)
 
     nb.Checkbutton(frame, variable=this.edsmBodyCheck,
-                   text="Check if body information on EDSM is incomplete").grid(padx=PADX, sticky=tk.W)
-    nb.Button(frame, text="Clear cache of scanned systems", command=edsmClearCacheCallback).grid(padx=PADX, sticky=tk.W)
+                   text="Display number of bodies known to EDSM in current system").grid(padx=PADX, sticky=tk.W)
 
+    # enable projects
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
-
     nb.Label(frame, text="Please choose which projects to enable").grid(padx=PADX, sticky=tk.W)
     for rseProject in this.rseData.projectsDict.values():
         invertedFlag = not (this.rseData.ignoredProjectsFlags & rseProject.projectId == rseProject.projectId)
@@ -184,12 +186,25 @@ def plugin_prefs(parent):
         nb.Checkbutton(frame, variable=variable, text=text).grid(padx=PADX, sticky=tk.W)
         nb.Label(frame, text=rseProject.explanation).grid(padx=PADX * 4, sticky=tk.W)
 
+    # overwrite disabled state when EDDN/EDSM is off in EDMC
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Checkbutton(frame, variable=this.clipboard,
                    text="Copy system name to clipboard after jump").grid(padx=PADX, sticky=tk.W)
     nb.Checkbutton(frame, variable=this.overwrite,
                    text="I use another tool to transmit data to EDSM/EDDN").grid(padx=PADX, sticky=tk.W)
 
+    # clear caches
+    ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
+    nb.Label(frame, text="Clear caches").grid(padx=PADX, sticky=tk.W)
+    clearCachesFrame = nb.Frame(frame)
+    clearCachesFrame.grid(padx=PADX * 2, pady=8, sticky=tk.EW)
+    frame.columnconfigure(2, weight=1)
+    nb.Button(clearCachesFrame, text="Fully scanned systems", command=lambda: clearScannedSystemsCacheCallback(RseData.CACHE_FULLY_SCANNED_BODIES, "fully scanned systems"))\
+        .grid(padx=PADX, sticky=tk.W, row=0, column=0)
+    nb.Button(clearCachesFrame, text="Ignored systems", command=lambda: clearScannedSystemsCacheCallback(RseData.CACHE_IGNORED_SYSTEMS, "ignored systems")) \
+        .grid(padx=PADX, sticky=tk.W, row=0, column=1)
+
+    # links
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(RseData.VERSION)).grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"),
