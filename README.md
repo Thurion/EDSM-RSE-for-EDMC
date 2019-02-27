@@ -24,8 +24,7 @@ Using this plugin only makes sense when the system locations are transmitted via
 ![Screenshot](img/settings.png)
 
 There is a local cache on the plugin's folder called _cache.sqlite_. It stores systems in the form of their ID64, an expiration date for when to remove the system from the cache and a number to specify to which cache it belongs to. Because only a few numbers are stored in the database, it will grow very slowly in size.\
-When you jump into a system that is part of a project, the system will be added to the local cache for one day to allow the remote database to catch up.\
-If you wish to reset all cached systems, just delete the file. A new, empty file will be created on the next start of the plugin.
+When you jump into a system that is part of a project, the system will be added to the local cache for one day to allow the remote database to catch up.
 
 ### Display number of bodies known to EDSM in current system
 
