@@ -95,14 +95,16 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
         self.systemAddress = eliteSystem.id64
 
     def queryEDSM(self, systems):
-        # TODO: use a cache
         """ returns a set of systems names in lower case with unknown coordinates """
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
         params = list()
         names = set()
+        cache = self.rseData.getCachedSet(RseData.CACHE_EDSM_RSE_QUERY)
+        addToCache = list()
         for system in systems:
-            if system.uncertainty > 0:
+            if system.uncertainty > 0 and system.id64 not in cache:
                 params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
+                addToCache.append(system.id64)
         edsmUrl += "&".join(params)
 
         if __debug__: print("querying EDSM for {} systems".format(len(params)))
@@ -113,6 +115,13 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                 edsmJson = json.loads(response)
                 for entry in edsmJson:
                     names.add(entry["name"].lower())
+
+                expirationTime = time.time() + 30 * 60  # ignore for 30 minutes
+                self.rseData.openLocalDatabase()
+                for id64 in addToCache:
+                    self.rseData.addSystemToCache(id64, expirationTime, RseData.CACHE_EDSM_RSE_QUERY, handleDbConnection=False)
+                self.rseData.closeLocalDatabase()
+
                 return names
             except:
                 # ignore. the EDSM call is not required

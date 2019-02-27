@@ -132,6 +132,7 @@ class RseData(object):
     # possible caches
     CACHE_IGNORED_SYSTEMS = 1
     CACHE_FULLY_SCANNED_BODIES = 2
+    CACHE_EDSM_RSE_QUERY = 3
 
     def __init__(self, pluginDir, radiusExponent=DEFAULT_RADIUS_EXPONENT):
         self.pluginDir = pluginDir
