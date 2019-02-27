@@ -161,7 +161,7 @@ def plugin_close():
 def clearScannedSystemsCacheCallback(cacheType, name):
     # called when clicked on the clear cache of scanned systems button in settings
     result = tkMessageBox.askquestion("Delete " + name, "Do you really want to delete all {}?\nThis cannot be undone.".format(name), icon='warning')
-    if result == 'yes':
+    if result == tkMessageBox.YES:
         this.queue.put(BackgroundTask.DeleteSystemsFromCacheTask(this.rseData, cacheType))
 
 
