@@ -24,8 +24,7 @@ Using this plugin only makes sense when the system locations are transmitted via
 ![Screenshot](img/settings.png)
 
 There is a local cache on the plugin's folder called _cache.sqlite_. It stores systems in the form of their ID64, an expiration date for when to remove the system from the cache and a number to specify to which cache it belongs to. Because only a few numbers are stored in the database, it will grow very slowly in size.\
-When you jump into a system that is part of a project, the system will be added to the local cache for one day to allow the remote database to catch up.\
-If you wish to reset all cached systems, just delete the file. A new, empty file will be created on the next start of the plugin.
+When you jump into a system that is part of a project, the system will be added to the local cache for one day to allow the remote database to catch up.
 
 ### Display number of bodies known to EDSM in current system
 
@@ -36,7 +35,7 @@ The cache can be cleared by pressing the "Fully scanned systems" button in the s
 * When the body count shows something like ``0/42``, it means that EDSM knows none of the possible 42 bodies.
 * A body count like ``3/42`` means that EDSM knows only about 3 of the bodies. To check which ones, you can look up the system on the EDSM website.
 * A body count like ``42/42`` means that EDSM knows about all bodies in this system.
-* There is a rare case where the first number is larger than the second, e.g. ``45/42``. If this happen, please report the system on [EDSM's discord](https://discord.gg/0sFOD6GxFZRc1ad0). One of the EDSM admins can remove the erroneous bodies.
+* There is a rare case where the first number is larger than the second, e.g. ``45/42``. If this happens, please report the system on [EDSM's discord](https://discord.gg/0sFOD6GxFZRc1ad0). One of the EDSM admins can remove the erroneous bodies.
 
 ### Ignore a system
 
