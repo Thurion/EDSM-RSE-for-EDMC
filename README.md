@@ -17,22 +17,46 @@ Scan populated systems - with the addition of nav beacon scans to the journal, E
 
 You will need to re-start EDMC to use the newly added plugin.
 
-## Usage
+## Usage and Settings
 
-A few settings can be configured:
-* How often the plugin will check for systems without coordinates
-    * 1 means it will check for systems after every jump and 7 will do so only every 7 jumps. A few things happen on an update: 
-	    1. Get systems that match the radius from the remote database
-		2. Calclate the distance to all of them
-		3. Ask EDSM for the closest 15 systems if they are still missing coordinates. This happens up to 3 times for a total of up to 45 systems. A particular system is checked once every hour at most.
-		4. If there are any nearby systems left in the list, show the closest systems with an estimated distance to it and copy the name to the clipboard if it is turned on.
-* Whether to copy the system name to clipboard or not
+Using this plugin only makes sense when the system locations are transmitted via EDDN or directly to EDSM. The plugin won't do anything if neither one is turned on. To overwrite that behavior, check the option that another tool is used to transmit the data in the settings menu.
 
-Using this plugin only makes sense when the system locations are transmitted via EDDN or directly to EDSM. The plugin won't do anything if neither one is turned on. To overwrite that behavior, check that another tool is used to transmit the data.
+![Screenshot](img/settings.png)
+
+There is a local cache on the plugin's folder called _cache.sqlite_. It stores systems in the form of their ID64, an expiration date for when to remove the system from the cache and a number to specify to which cache it belongs to. Because only a few numbers are stored in the database, it will grow very slowly in size.\
+When you jump into a system that is part of a project, the system will be added to the local cache for one day to allow the remote database to catch up.\
+If you wish to reset all cached systems, just delete the file. A new, empty file will be created on the next start of the plugin.
+
+### Display number of bodies known to EDSM in current system
+
+This option is turned on by default and will display how many bodies EDSM knows about in the current system.\
+After you jump into a system, use the discovery scanner to trigger the display in EDMC's main window. The number won't count up as you scan bodies in the system. However, once all bodies are scanned, it will show that the system is complete and will add the system to a local cache. This is done to prevent repeated EDSM calls when jumping around in the same systems.\
+The cache can be cleared by pressing the "Fully scanned systems" button in the settings.
+
+* When the body count shows something like ``0/42``, it means that EDSM knows none of the possible 42 bodies.
+* A body count like ``3/42`` means that EDSM knows only about 3 of the bodies. To check which ones, you can look up the system on the EDSM website.
+* A body count like ``42/42`` means that EDSM knows about all bodies in this system.
+* There is a rare case where the first number is larger than the second, e.g. ``45/42``. Please report the system on [EDSM's discord](https://discord.gg/0sFOD6GxFZRc1ad0) because that means, that EDSM knows more bodies than are actually in the system. That can happen when a system is renamed.
+
+### Ignore a system
+
+In case you want to ignore a system for whatever reason, you can do so by right clicking the unconfirmed system name like so:
+![Screenshot](img/ignore_system.png)
+
+* ``Ignore this session`` will ignore a system for as long as EDMC keeps running.
+* ``Ignore for 24 hours`` will ignore a system for one day. It doesn't matter if you restart EDMC.
+* ``Ignore indefinetely`` will ignore a system forever. Or actually until 2038 because then the program will run into a problem with the timestamps.
+
+All ignored systems can be cleared in the settings.
+
+### Projects
+
+There are currently two active projects: RSE and scan navbeacons.\
+To disable one or more projects, go into the settings and remove the checkmark next to the project name. A globally disabled project won't show up regardless of the local setting.
 
 ## Acknowledgments
 
-* RapidfireCRH came up with the idea originally and was highly involved in the project.
+* RapidfireCRH came up with the idea originally. He can be found on the [EDCD discord](https://discord.gg/0uwCh6R62aQ0eeAX) helping people who run into problems. Just ask in the EDMC channel.
 * The estimated coordinates for the systems were created by [EDTS](https://bitbucket.org/Esvandiary/edts)
 * Big thanks to Amiganer_Christian for hosting the remote server and helping with scan tracking.
 * This plugin is part of the EDMC repack by Six-Shooter. You can download the repack at http://edfs.space/index.php/Tools
