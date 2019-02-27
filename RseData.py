@@ -139,8 +139,6 @@ class RseData(object):
         self.systemList = list()  # nearby systems, sorted by distance
         self.projectsDict = dict()  # key = ID, value = RseProject
         self.frame = None
-        self.filter = set()  # systems that have been completed
-        self.scannedSystems = set()  # fully scanned systems which don't need checking anymore (either on EDSM or scanned by commander)
         self.lastEventInfo = dict()  # used to pass values to UI. don't assign a new value! use clear() instead
         self.radiusExponent = radiusExponent
         self.frame = None  # tk frame
@@ -149,6 +147,20 @@ class RseData(object):
         self.localDbCursor = None
         self.localDbConnection = None
         self.ignoredProjectsFlags = 0  # bit mask of ignored projects (AND of all their IDs)
+
+        """ 
+        Dictionary of sets that contain the cached systems. 
+        Key for the dictionary is the value of one of the CACHE_<type> variables. The value is the set that holds the corresponding systems 
+        Key for set is the ID64 of the cached system
+        """
+        self.__cachedSystems = dict()
+
+    def getCachedSet(self, cacheType):
+        """ Return set of cached systems or empty set. """
+        if cacheType in self.__cachedSystems:
+            return self.__cachedSystems.get(cacheType)
+        else:
+            return self.__cachedSystems.setdefault(cacheType, set())
 
     def setFrame(self, frame):
         self.frame = frame
@@ -160,7 +172,7 @@ class RseData(object):
             self.remoteDbCursor = self.remoteDbConnection.cursor()
         except Exception as e:
             if __debug__:
-                print("Remote cache database could not be opened")
+                print("Remote database could not be opened")
             plug.show_error("EDSM-RSE: Remote database could not be opened")
             sys.stderr.write("EDSM-RSE: Remote database could not be opened\n")
 
@@ -210,6 +222,12 @@ class RseData(object):
         return 39 + 11 * (2 ** self.radiusExponent)
 
     def generateIgnoredActionsList(self):
+        """
+        TODO
+        currently it ignores all systems that are part of a project. lets say we have a system that is part of 2 projects
+        and the user ignores one of them. then it won't be in the list
+        might want to change that and just remove the project from the local action flag
+        """
         enabledFlags = set()
         combinedIgnoredFlags = self.ignoredProjectsFlags
 
@@ -265,7 +283,7 @@ class RseData(object):
                 systems.append(eliteSystem)
 
         # filter out systems that have been completed or are ignored
-        systems = filter(lambda system: system.id64 not in self.filter, systems)
+        systems = filter(lambda system: system.id64 not in self.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS), systems)
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
@@ -282,13 +300,13 @@ class RseData(object):
             return  # can't do anything here
 
         now = time.time()
-        self.localDbCursor.execute("SELECT id64 FROM IgnoredSystems WHERE expirationDate <= ?", (now,))
+        self.localDbCursor.execute("SELECT id64, cacheType FROM CachedSystems WHERE expirationDate <= ?", (now,))
         for row in self.localDbCursor.fetchall():
-            id64 = row[0]
-            if id64 in self.filter:
-                self.filter.remove(id64)
-        self.localDbCursor.execute("DELETE FROM IgnoredSystems WHERE expirationDate <= ?", (now,))
-        self.localDbCursor.execute("DELETE FROM ScannedSystems WHERE expirationDate <= ?", (now,))
+            id64, cacheType = row
+            cache = self.getCachedSet(cacheType)
+            if id64 in cache:
+                cache.remove(id64)
+        self.localDbCursor.execute("DELETE FROM CachedSystems WHERE expirationDate <= ?", (now,))
         self.localDbConnection.commit()
 
         if handleDbConnection:
@@ -300,11 +318,7 @@ class RseData(object):
         if not self.isLocalDatabaseAccessible():
             return  # no database connection
 
-        if cacheType == RseData.CACHE_IGNORED_SYSTEMS:
-            self.localDbCursor.execute("DELETE FROM IgnoredSystems WHERE id64 NOT NULL")
-        elif cacheType == RseData.CACHE_FULLY_SCANNED_BODIES:
-            self.localDbCursor.execute("DELETE FROM ScannedSystems WHERE id64 NOT NULL")
-
+        self.localDbCursor.execute("DELETE FROM CachedSystems WHERE id64 NOT NULL AND cacheType = ?", (cacheType,))
         self.localDbConnection.commit()
 
         if handleDbConnection:
@@ -314,42 +328,28 @@ class RseData(object):
         if handleDbConnection:
             self.openLocalDatabase()
         if self.isLocalDatabaseAccessible():
-            if cacheType == RseData.CACHE_IGNORED_SYSTEMS:
-                self.localDbCursor.execute("INSERT OR REPLACE INTO IgnoredSystems VALUES (?, ?)", (id64, expirationTime))
-            elif cacheType == RseData.CACHE_FULLY_SCANNED_BODIES:
-                self.localDbCursor.execute("INSERT OR REPLACE INTO ScannedSystems VALUES (?, ?)", (id64, expirationTime))
+            self.localDbCursor.execute("INSERT OR REPLACE INTO CachedSystems VALUES (?, ?, ?)", (id64, expirationTime, cacheType))
             self.localDbConnection.commit()
         if handleDbConnection:
             self.closeLocalDatabase()
 
     def initialize(self):
         # initialize local cache
-        # TODO add timer to remove expired entries
         self.openLocalDatabase()
         if self.isLocalDatabaseAccessible():
-            self.localDbCursor.execute("""CREATE TABLE IF NOT EXISTS `IgnoredSystems` (
-                                      `id64` INTEGER,
-                                      `expirationDate` REAL,
-                                      PRIMARY KEY(`id64`));""")
-            self.localDbCursor.execute("""CREATE TABLE IF NOT EXISTS `ScannedSystems` (
-                                      `id64` INTEGER,
-                                      `expirationDate` REAL,
-                                      PRIMARY KEY(`id64`));""")
+            self.localDbCursor.execute("""CREATE TABLE IF NOT EXISTS `CachedSystems` (
+                                            `id64`	          INTEGER,
+                                            `expirationDate`  REAL NOT NULL,
+                                            `cacheType`	      INTEGER NOT NULL,
+                                            PRIMARY KEY(`id64`));""")
             self.localDbConnection.commit()
             self.removeExpiredSystemsFromCaches(handleDbConnection=False)
 
-            # read ignored systems
-            self.localDbCursor.execute("SELECT id64 FROM IgnoredSystems")
-            for _row in self.localDbCursor.fetchall():
-                id64 = _row[0]
-                self.filter.add(id64)
-
-            # read scanned systems
-            self.localDbCursor.execute("SELECT id64 FROM ScannedSystems")
-            for _row in self.localDbCursor.fetchall():
-                id64 = _row[0]
-                self.scannedSystems.add(id64)
-
+            # read cached systems
+            self.localDbCursor.execute("SELECT id64, cacheType FROM CachedSystems")
+            for row in self.localDbCursor.fetchall():
+                id64, cacheType = row
+                self.getCachedSet(cacheType).add(id64)
             self.closeLocalDatabase()
 
         # initialize dictionaries

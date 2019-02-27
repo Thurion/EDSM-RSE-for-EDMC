@@ -70,7 +70,7 @@ class BackgroundTaskClosestSystem(BackgroundTask):
         self.rseData.systemList = [x for x in self.rseData.systemList if x not in removeMe]
         self.rseData.openLocalDatabase()
         for system in removeMe:
-            self.rseData.filter.add(system.id64)
+            self.rseData.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS).add(system.id64)
             self.rseData.addSystemToCache(system.id64, time.time() + 24 * 3600, RseData.CACHE_IGNORED_SYSTEMS, handleDbConnection=False)
         self.rseData.closeLocalDatabase()
 
@@ -169,10 +169,10 @@ class IgnoreSystemTask(BackgroundTaskClosestSystem):
     def execute(self):
         for system in self.rseData.systemList:
             if system.name.lower() == self.systemName.lower():
-                self.rseData.filter.add(system.id)
+                self.rseData.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS).add(system.id64)
                 self.rseData.systemList.remove(system)
                 if self.duration > 0:
-                    self.rseData.addSystemToCache(system.id, self.duration, RseData.CACHE_IGNORED_SYSTEMS)
+                    self.rseData.addSystemToCache(system.id64, self.duration, RseData.CACHE_IGNORED_SYSTEMS)
                 self.fireEvent()
                 break
 

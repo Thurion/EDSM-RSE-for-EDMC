@@ -286,7 +286,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         return  # nothing to do here
     
     if entry["event"] == "FSDJump" or entry["event"] == "Location":
-        if entry["SystemAddress"] in this.rseData.scannedSystems:
+        if entry["SystemAddress"] in this.rseData.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES):
             this.edsmBodyCountText["text"] = "System complete"
             this.systemScanned = True
         else:
