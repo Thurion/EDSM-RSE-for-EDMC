@@ -40,7 +40,7 @@ The cache can be cleared by pressing the "Fully scanned systems" button in the s
 
 ### Ignore a system
 
-In case you want to ignore a system for whatever reason, you can do so by right clicking the unconfirmed system name like so:
+In case you want to ignore a system for whatever reason, you can do so by right clicking the unconfirmed system name like so:\
 ![Screenshot](img/ignore_system.png)
 
 * ``Ignore this session`` will ignore a system for as long as EDMC keeps running.
