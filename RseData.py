@@ -103,7 +103,7 @@ class EliteSystem(object):
 
 class RseData(object):
 
-    VERSION = "1.1"
+    VERSION = "1.2"
     VERSION_CHECK_URL = "https://gist.githubusercontent.com/Thurion/35553c9562297162a86722a28c7565ab/raw/RSE_update_info"
 
     # settings for search radius
