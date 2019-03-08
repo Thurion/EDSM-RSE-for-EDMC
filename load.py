@@ -319,10 +319,11 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         this.queue.put(BackgroundTask.NavbeaconTask(this.rseData, entry["SystemAddress"]))
 
     if entry["event"] == "FSSDiscoveryScan" and this.edsmBodyCheck.get():
-        if this.systemCreated:
-            this.edsmBodyCountText["text"] = "0/{}".format(entry["BodyCount"])
-        elif not this.systemScanned:
-            this.queue.put(BackgroundTask.FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"], entry["Progress"]))
+        if not this.systemScanned:
+            if this.systemCreated:
+                this.edsmBodyCountText["text"] = "0/{}".format(entry["BodyCount"])
+            else:
+                this.queue.put(BackgroundTask.FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"], entry["Progress"]))
         this.systemScanned = True
 
     if entry["event"] == "FSSAllBodiesFound" and this.edsmBodyCheck.get():
