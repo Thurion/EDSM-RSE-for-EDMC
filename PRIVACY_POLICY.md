@@ -13,8 +13,12 @@ We don't collect personal data.
 
 ### Usage Data
 
-We may collect information when you access the Service by or through the plugin ("Usage Data").
-This Usage Data may include information such as your computer's Internet Protocol address (e.g. IP address), the time and date of your visit and what information you accessed. Please note, that this Plugin will also access EDSM. Please also refer to their [privacy policy](https://www.edsm.net/faq/privacy-policy) for further details.
+We don't collect any information when you access the Service by or through the plugin ("Usage Data").
+Please note, that this Plugin will also access EDSM and Github for the dollowing reasons:
+* EDSM is used to get information about star systems of the game Elite Dangerous.
+* Github is used for a version check.
+
+Please refer to [EDSM's privacy policy](https://www.edsm.net/faq/privacy-policy) and [Github's privacy policy](https://github.com/site/privacy) for further details.
 
 ## Use of Data
 
