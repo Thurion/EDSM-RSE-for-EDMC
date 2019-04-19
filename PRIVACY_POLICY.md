@@ -5,6 +5,10 @@ This Privacy Policy for EDSM-RSE is powered by FreePrivacyPolicy.com.
 
 We use your data to provide and improve the Service. By using the Service, you agree to the collection and use of information in accordance with this policy. 
 
+## Date of Revision
+This policy was revised on April 19th, 2019.\
+You can find all changes here on [Github](https://github.com/Thurion/EDSM-RSE-for-EDMC/commits/master/PRIVACY_POLICY.md).
+
 ## Information Collection And Use
 
 ### Personal Data
@@ -49,5 +53,6 @@ The security of your data is important to us, but remember that no method of tra
 
 ## Changes To This Privacy Policy
 
-We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.
-We will let you know via email and/or a prominent notice on our Service, prior to the change becoming effective and update the "effective date" at the top of this Privacy Policy.
+We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and releasing a new version of the Plugin.
+
+As we do not store user email addresses, we will be unable to notify you via any other means on when these changes will be made effective.
