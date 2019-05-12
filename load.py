@@ -267,13 +267,13 @@ def plugin_app(parent):
     this.rseData.setFrame(this.frame)
 
     this.frame.columnconfigure(1, weight=1)
-    tk.Label(this.frame, text="Unconfirmed:").grid(row=0, column=0, sticky=tk.W)
+    tk.Label(this.frame, text="Target:").grid(row=0, column=0, sticky=tk.W)
     this.unconfirmedSystem = RseHyperlinkLabel(this.frame, compound=tk.RIGHT, popup_copy=True)
     this.errorLabel = tk.Label(this.frame)
     tk.Label(this.frame, text="Distance:").grid(row=1, column=0, sticky=tk.W)
     this.distanceValue = tk.Label(this.frame)
     this.distanceValue.grid(row=1, column=1, sticky=tk.W)
-    tk.Label(this.frame, text="Action:").grid(row=2, column=0, sticky=tk.W)
+    tk.Label(this.frame, text="Todo:").grid(row=2, column=0, sticky=tk.W)
     this.actionText = tk.Label(this.frame)
     this.actionText.grid(row=2, column=1, sticky=tk.W)
 
