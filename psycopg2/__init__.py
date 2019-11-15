@@ -8,8 +8,8 @@ small and fast, and stable as a rock.
 
 Homepage: http://initd.org/projects/psycopg2
 
-.. _PostgreSQL: http://www.postgresql.org/
-.. _Python: http://www.python.org/
+.. _PostgreSQL: https://www.postgresql.org/
+.. _Python: https://www.python.org/
 
 :Groups:
   * `Connections creation`: connect
@@ -18,7 +18,7 @@ Homepage: http://initd.org/projects/psycopg2
 """
 # psycopg/__init__.py - initialization of the psycopg module
 #
-# Copyright (C) 2003-2010 Federico Di Gregorio  <fog@debian.org>
+# Copyright (C) 2003-2019 Federico Di Gregorio  <fog@debian.org>
 #
 # psycopg2 is free software: you can redistribute it and/or modify it
 # under the terms of the GNU Lesser General Public License as published
@@ -43,10 +43,9 @@ Homepage: http://initd.org/projects/psycopg2
 
 # Note: the first internal import should be _psycopg, otherwise the real cause
 # of a failed loading of the C module may get hidden, see
-# http://archives.postgresql.org/psycopg/2011-02/msg00044.php
+# https://archives.postgresql.org/psycopg/2011-02/msg00044.php
 
 # Import the DBAPI-2.0 stuff into top-level module.
-
 from psycopg2._psycopg import (                     # noqa
     BINARY, NUMBER, STRING, DATETIME, ROWID,
 
@@ -73,11 +72,11 @@ _ext.register_adapter(type(None), _ext.NoneAdapter)
 # This way a new class is registered for each sub-interpreter.
 # See ticket #52
 try:
-    from decimal import Decimal
+    from decimal import Decimal                         # noqa
 except ImportError:
     pass
 else:
-    from psycopg2._psycopg import Decimal as Adapter
+    from psycopg2._psycopg import Decimal as Adapter    # noqa
     _ext.register_adapter(Decimal, Adapter)
     del Decimal, Adapter
 

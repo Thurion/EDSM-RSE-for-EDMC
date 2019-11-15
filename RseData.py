@@ -22,8 +22,8 @@ import sys
 import os
 import time
 import math
-import psycopg2
 import sqlite3
+import psycopg2
 
 
 class RseProject(object):
@@ -103,7 +103,7 @@ class EliteSystem(object):
 
 class RseData(object):
 
-    VERSION = "1.2"
+    VERSION = "1.3"
     VERSION_CHECK_URL = "https://gist.githubusercontent.com/Thurion/35553c9562297162a86722a28c7565ab/raw/RSE_update_info"
 
     # settings for search radius
@@ -284,7 +284,7 @@ class RseData(object):
                 systems.append(eliteSystem)
 
         # filter out systems that have been completed or are ignored
-        systems = filter(lambda system: system.id64 not in self.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS), systems)
+        systems = list(filter(lambda system: system.id64 not in self.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS), systems))
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
