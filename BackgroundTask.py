@@ -18,11 +18,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
 import json
-import urllib2
 import time
 import sys
-
+import math
 from RseData import RseData
+from urllib.parse import quote
+from urllib.request import urlopen, Request
+
+
 
 if __debug__:
     from traceback import print_exc
@@ -57,16 +60,15 @@ class BackgroundTaskClosestSystem(BackgroundTask):
             self.rseData.frame.event_generate(RseData.EVENT_RSE_BACKGROUNDWORKER, when="tail")  # calls updateUI in main thread
 
     def getSystemFromID(self, id64):
-        system = filter(lambda x: x.id64 == id64, self.rseData.systemList)[:1]  # there is only one possible match for ID64, avoid exception being thrown
+        system = list(filter(lambda x: x.id64 == id64, self.rseData.systemList))  # there is only one possible match for ID64, avoid exception being thrown
         if len(system) > 0:
             return system[0]
         else:
             return None
 
     def removeSystems(self):
-        removeMe = filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList)
-        if __debug__: print(
-            "adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]))
+        removeMe = list(filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList))
+        if __debug__: print("adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]))
         self.rseData.systemList = [x for x in self.rseData.systemList if x not in removeMe]
         self.rseData.openLocalDatabase()
         for system in removeMe:
@@ -103,14 +105,14 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
         addToCache = list()
         for system in systems:
             if system.uncertainty > 0 and system.id64 not in cache:
-                params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
+                params.append("systemName[]={name}".format(name=quote(system.name)))
                 addToCache.append(system.id64)
         edsmUrl += "&".join(params)
 
         if __debug__: print("querying EDSM for {} systems".format(len(params)))
         if len(params) > 0:
             try:
-                url = urllib2.urlopen(edsmUrl, timeout=10)
+                url = urlopen(edsmUrl, timeout=10)
                 response = url.read()
                 edsmJson = json.loads(response)
                 for entry in edsmJson:
@@ -192,8 +194,8 @@ class VersionCheckTask(BackgroundTask):
 
     def execute(self):
         try:
-            request = urllib2.Request(RseData.VERSION_CHECK_URL)
-            response = urllib2.urlopen(request)
+            request = Request(RseData.VERSION_CHECK_URL)
+            response = urlopen(request)
             newVersionInfo = json.loads(response.read())
             if RseData.VERSION != newVersionInfo["version"]:
                 self.rseData.lastEventInfo[RseData.BG_UPDATE_JSON] = newVersionInfo
@@ -236,7 +238,7 @@ class FSSAllBodiesFoundTask(EdsmBodyCheck):
         self.id64 = id64
 
     def execute(self):
-        self.rseData.addSystemToCache(self.id64, sys.maxint, RseData.CACHE_FULLY_SCANNED_BODIES)
+        self.rseData.addSystemToCache(self.id64, 2 ** 31 - 1, RseData.CACHE_FULLY_SCANNED_BODIES)
         self.fireEvent("System complete")
 
 
@@ -248,11 +250,11 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
         self.progress = progress
 
     def queryEdsm(self):
-        edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=urllib2.quote(self.systemName))
+        edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=quote(self.systemName))
         if __debug__:
             print("querying EDSM for bodies of system {}".format(self.systemName))
         try:
-            url = urllib2.urlopen(edsmUrl, timeout=10)
+            url = urlopen(edsmUrl, timeout=10)
             response = url.read()
             edsmJson = json.loads(response)
             return edsmJson["id64"], len(edsmJson["bodies"])
@@ -269,7 +271,7 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
         id64, knownToEdsm = self.queryEdsm()
         if id64:
             if self.bodyCount == knownToEdsm:
-                self.rseData.addSystemToCache(id64, sys.maxint, RseData.CACHE_FULLY_SCANNED_BODIES)
+                self.rseData.addSystemToCache(id64, int(math.pow(2, 31)) - 1, RseData.CACHE_FULLY_SCANNED_BODIES)
             self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM=knownToEdsm))
         else:
             self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM="?"))

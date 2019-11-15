@@ -4,7 +4,7 @@ This module contains symbolic names for all PostgreSQL error codes.
 """
 # psycopg2/errorcodes.py - PostgreSQL error codes
 #
-# Copyright (C) 2006-2010 Johan Dahlin  <jdahlin@async.com.br>
+# Copyright (C) 2006-2019 Johan Dahlin  <jdahlin@async.com.br>
 #
 # psycopg2 is free software: you can redistribute it and/or modify it
 # under the terms of the GNU Lesser General Public License as published
@@ -26,7 +26,7 @@ This module contains symbolic names for all PostgreSQL error codes.
 #
 # Based on:
 #
-#   http://www.postgresql.org/docs/current/static/errcodes-appendix.html
+#   https://www.postgresql.org/docs/current/static/errcodes-appendix.html
 #
 
 
@@ -40,7 +40,7 @@ def lookup(code, _cache={}):
 
     # Generate the lookup map at first usage.
     tmp = {}
-    for k, v in globals().iteritems():
+    for k, v in globals().items():
         if isinstance(v, str) and len(v) in (2, 5):
             tmp[v] = k
 
@@ -182,6 +182,7 @@ INVALID_XML_PROCESSING_INSTRUCTION = '2200T'
 INVALID_INDICATOR_PARAMETER_VALUE = '22010'
 SUBSTRING_ERROR = '22011'
 DIVISION_BY_ZERO = '22012'
+INVALID_PRECEDING_OR_FOLLOWING_SIZE = '22013'
 INVALID_ARGUMENT_FOR_NTILE_FUNCTION = '22014'
 INTERVAL_FIELD_OVERFLOW = '22015'
 INVALID_ARGUMENT_FOR_NTH_VALUE_FUNCTION = '22016'
@@ -204,6 +205,21 @@ TRIM_ERROR = '22027'
 ARRAY_SUBSCRIPT_ERROR = '2202E'
 INVALID_TABLESAMPLE_REPEAT = '2202G'
 INVALID_TABLESAMPLE_ARGUMENT = '2202H'
+DUPLICATE_JSON_OBJECT_KEY_VALUE = '22030'
+INVALID_JSON_TEXT = '22032'
+INVALID_SQL_JSON_SUBSCRIPT = '22033'
+MORE_THAN_ONE_SQL_JSON_ITEM = '22034'
+NO_SQL_JSON_ITEM = '22035'
+NON_NUMERIC_SQL_JSON_ITEM = '22036'
+NON_UNIQUE_KEYS_IN_A_JSON_OBJECT = '22037'
+SINGLETON_SQL_JSON_ITEM_REQUIRED = '22038'
+SQL_JSON_ARRAY_NOT_FOUND = '22039'
+SQL_JSON_MEMBER_NOT_FOUND = '2203A'
+SQL_JSON_NUMBER_NOT_FOUND = '2203B'
+SQL_JSON_OBJECT_NOT_FOUND = '2203C'
+TOO_MANY_JSON_ARRAY_ELEMENTS = '2203D'
+TOO_MANY_JSON_OBJECT_MEMBERS = '2203E'
+SQL_JSON_SCALAR_REQUIRED = '2203F'
 FLOATING_POINT_EXCEPTION = '22P01'
 INVALID_TEXT_REPRESENTATION = '22P02'
 INVALID_BINARY_REPRESENTATION = '22P03'

@@ -18,22 +18,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
 import sys
-import urllib2
 import time
-from Queue import Queue
-
-import Tkinter as tk
-import tkMessageBox
-import ttk
-from ttkHyperlinkLabel import HyperlinkLabel
 import myNotebook as nb
-
-from l10n import Locale
+from ttkHyperlinkLabel import HyperlinkLabel
 from config import config
-
+from l10n import Locale
 from RseData import RseData, EliteSystem
 from Backgroundworker import BackgroundWorker
 import BackgroundTask as BackgroundTask
+from urllib.parse import quote
+import tkinter as tk
+import tkinter.ttk as ttk
+import tkinter.messagebox as tkMessageBox
+from queue import Queue
 
 if __debug__:
     from traceback import print_exc
@@ -82,7 +79,7 @@ class RseHyperlinkLabel(HyperlinkLabel):
         this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], time.time() + 24 * 3600))
 
     def ignoreIndefinitely(self):
-        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], sys.maxint))
+        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], 2 ** 31 - 1))
 
 
 def checkTransmissionOptions():
@@ -91,7 +88,7 @@ def checkTransmissionOptions():
     return eddn or edsm
 
 
-def plugin_start(plugin_dir):
+def plugin_start3(plugin_dir):
     this.rseData = RseData(plugin_dir)
     settings = config.getint(this.CONFIG_MAIN) or 0  # default setting
     this.rseData.ignoredProjectsFlags = config.getint(this.CONFIG_IGNORED_PROJECTS)
@@ -118,7 +115,7 @@ def updateUiUnconfirmedSystem(event=None):
         this.errorLabel.grid_remove()
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
         this.unconfirmedSystem["text"] = eliteSystem.name
-        this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
+        this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
         distanceText = u"{distance} Ly".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2))
         if eliteSystem.uncertainty > 0:
@@ -165,7 +162,7 @@ def clearScannedSystemsCacheCallback(cacheType, name):
         this.queue.put(BackgroundTask.DeleteSystemsFromCacheTask(this.rseData, cacheType))
 
 
-def plugin_prefs(parent):
+def plugin_prefs(parent, cmdr, is_beta):
     PADX = 5
 
     frame = nb.Frame(parent)
@@ -214,7 +211,7 @@ def plugin_prefs(parent):
     return frame
 
 
-def prefs_changed():
+def prefs_changed(cmdr, is_beta):
     # bits are as follows:
     # 0-3 radius # not used anymore
     # 4-5 interval, not used anymore
