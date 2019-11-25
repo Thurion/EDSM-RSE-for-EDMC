@@ -19,18 +19,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import sys
 import time
-import myNotebook as nb
-from ttkHyperlinkLabel import HyperlinkLabel
-from config import config
-from l10n import Locale
-from RseData import RseData, EliteSystem
-from Backgroundworker import BackgroundWorker
-import BackgroundTask as BackgroundTask
+from typing import Dict
+from queue import Queue
+
 from urllib.parse import quote
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox as tkMessageBox
-from queue import Queue
+
+import myNotebook as nb
+from ttkHyperlinkLabel import HyperlinkLabel
+from config import config
+from l10n import Locale
+
+from RseData import RseData, EliteSystem
+from Backgroundworker import BackgroundWorker
+import BackgroundTask as BackgroundTask
 
 if __debug__:
     from traceback import print_exc
@@ -43,25 +47,25 @@ this.CONFIG_MAIN = "EDSM-RSE"
 this.rseData = None  # holding module wide variables
 this.systemCreated = False  # initialize with false in case someone uses an older EDMC version that does not call edsm_notify_system()
 this.enabled = False  # plugin configured correctly and therefore enabled
-this.currentSystem = None  # (EliteSystem) current system
+this.currentSystem = None  # type: EliteSystem # current system
 
-this.worker = None  # background worker
-this.queue = None  # queue used by the background worker
+this.worker = None  # type: BackgroundWorker
+this.queue = None  # type: Queue # queue used by the background worker
 
 # ui elements in options
-this.clipboard = None  # (tk.BooleanVar) copy system name to clipboard
-this.overwrite = None  # (tk.BooleanVar) overwrite disabled state (EDSM/EDDN disabled)
-this.edsmBodyCheck = None  # (tk.BooleanVar) in settings; compare total number of bodies to the number known to EDSM
+this.clipboard = None  # type: tk.BooleanVar # copy system name to clipboard
+this.overwrite = None  # type: tk.BooleanVar # overwrite disabled state (EDSM/EDDN disabled)
+this.edsmBodyCheck = None  # type: tk.BooleanVar # in settings; compare total number of bodies to the number known to EDSM
 this.systemScanned = False  # variable to prevent spamming the EDSM API
-this.ignoredProjectsCheckboxes = dict()  # dict of tk.BooleanVar. key = project ID, value = tk.BooleanVar
+this.ignoredProjectsCheckboxes = dict()  # type: Dict[int, tk.BooleanVar]
 
 # ui elements in main window
-this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
-this.distanceValue = None  # (tk.Label) distance to system
-this.actionText = None  # (tk.Label) task to do
-this.edsmBodyFrame = None  # (tk.Frame) frame containing all UI elements for EDSM body count
-this.edsmBodyCountText = None  # (tk.Label) text of information about bodies known to EDSM
-this.unconfirmedSystem = None  # (RseHyperlinkLabel) display name of system that needs checking
+this.errorLabel = None  # type: tk.Label # show if plugin can't work (EDSM/EDDN disabled)
+this.distanceValue = None  # type: tk.Label # distance to system
+this.actionText = None  # type: tk.Label # task to do
+this.edsmBodyFrame = None  # type: tk.Frame # frame containing all UI elements for EDSM body count
+this.edsmBodyCountText = None  # type: tk.Label # text of information about bodies known to EDSM
+this.unconfirmedSystem = None  # type: RseHyperlinkLabel # display name of system that needs checking
 
 
 class RseHyperlinkLabel(HyperlinkLabel):

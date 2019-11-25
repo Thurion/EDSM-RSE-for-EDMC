@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
-
 import plug
 import sys
 import os
@@ -24,10 +23,11 @@ import time
 import math
 import sqlite3
 import psycopg2
+from typing import Dict, List, Any, Set
 
 
 class RseProject(object):
-    def __init__(self, projectId, actionText, name, explanation, enabled):
+    def __init__(self, projectId: int, actionText: str, name: str, explanation: str, enabled: int):
         self.projectId = projectId
         self.actionText = actionText
         self.name = name
@@ -36,7 +36,7 @@ class RseProject(object):
 
 
 class EliteSystem(object):
-    def __init__(self, id64, name, x, y, z, uncertainty=0):
+    def __init__(self, id64: int, name: str, x, y, z, uncertainty: int = 0):
         self.id64 = id64
         self.name = name
         self.x = x
@@ -44,7 +44,7 @@ class EliteSystem(object):
         self.z = z
         self.uncertainty = uncertainty
         self.distance = 10000  # set initial value to be out of reach
-        self.__rseProjects = dict()
+        self.__rseProjects = dict()  # type: Dict[int, RseProject]
 
     @staticmethod
     def calculateDistance(x1, x2, y1, y2, z1, z2):
@@ -56,24 +56,24 @@ class EliteSystem(object):
     def calculateDistanceToCoordinates(self, x2, y2, z2):
         return self.calculateDistance(self.x, x2, self.y, y2, self.z, z2)
 
-    def removeFromProject(self, projectId):
+    def removeFromProject(self, projectId: int):
         if projectId in self.__rseProjects:
             del self.__rseProjects[projectId]
 
     def removeFromAllProjects(self):
         self.__rseProjects.clear()
 
-    def addToProject(self, rseProject):
+    def addToProject(self, rseProject: RseProject):
         self.__rseProjects.setdefault(rseProject.projectId, rseProject)
 
-    def addToProjects(self, rseProjects):
+    def addToProjects(self, rseProjects: List[RseProject]):
         for rseProject in rseProjects:
             self.addToProject(rseProject)
 
     def getProjectIds(self):
         return self.__rseProjects.keys()
 
-    def calculateDistanceToSystem(self, system2):
+    def calculateDistanceToSystem(self, system2: "EliteSystem"):
         return self.calculateDistanceToCoordinates(system2.x, system2.y, system2.z)
 
     def getActionText(self):
@@ -134,13 +134,13 @@ class RseData(object):
     CACHE_FULLY_SCANNED_BODIES = 2
     CACHE_EDSM_RSE_QUERY = 3
 
-    def __init__(self, pluginDir, radiusExponent=DEFAULT_RADIUS_EXPONENT):
+    def __init__(self, pluginDir: str, radiusExponent: int = DEFAULT_RADIUS_EXPONENT):
         self.pluginDir = pluginDir
         self.newVersionInfo = None
-        self.systemList = list()  # nearby systems, sorted by distance
-        self.projectsDict = dict()  # key = ID, value = RseProject
+        self.systemList = list()  # type: List[EliteSystem] # nearby systems, sorted by distance
+        self.projectsDict = dict()  # type: Dict[int, RseProject] # key = ID
         self.frame = None
-        self.lastEventInfo = dict()  # used to pass values to UI. don't assign a new value! use clear() instead
+        self.lastEventInfo = dict()  # type: Dict[str, Any] # used to pass values to UI. don't assign a new value! use clear() instead
         self.radiusExponent = radiusExponent
         self.frame = None  # tk frame
         self.remoteDbCursor = None
@@ -154,9 +154,9 @@ class RseData(object):
         Key for the dictionary is the value of one of the CACHE_<type> variables. The value is the set that holds the corresponding systems 
         Key for set is the ID64 of the cached system
         """
-        self.__cachedSystems = dict()
+        self.__cachedSystems = dict()  # type: Dict[int, Set[int]]
 
-    def getCachedSet(self, cacheType):
+    def getCachedSet(self, cacheType: int) -> Set[int]:
         """ Return set of cached systems or empty set. """
         if cacheType in self.__cachedSystems:
             return self.__cachedSystems.get(cacheType)
@@ -207,7 +207,11 @@ class RseData(object):
     def isLocalDatabaseAccessible(self):
         return hasattr(self, "localDbCursor") and self.localDbCursor
 
-    def adjustRadiusExponent(self, numberOfSystems):
+    def adjustRadiusExponent(self, numberOfSystems: int):
+        """
+        Adjust the radius to ensure that not too many systems are found (decrease network traffic and database load)
+        :param numberOfSystems:  number of systems found the last time
+        """
         if numberOfSystems <= RseData.RADIUS_ADJUSTMENT_INCREASE:
             self.radiusExponent += 1
             if self.radiusExponent > RseData.MAX_RADIUS:
@@ -222,7 +226,7 @@ class RseData(object):
     def calculateRadius(self):
         return 39 + 11 * (2 ** self.radiusExponent)
 
-    def generateIgnoredActionsList(self):
+    def generateIgnoredActionsList(self) -> Set[int]:
         """
         TODO
         currently it ignores all systems that are part of a project. lets say we have a system that is part of 2 projects
@@ -257,7 +261,6 @@ class RseData(object):
             "z1": z - self.calculateRadius(),
             "z2": z + self.calculateRadius()}
 
-        whereCondition = ""
         if len(enabledFlags) == 2 ** len(self.projectsDict.values()):  # all projects are enabled
             whereCondition = "deleted_at IS NULL;"
         else:
@@ -313,7 +316,7 @@ class RseData(object):
         if handleDbConnection:
             self.closeLocalDatabase()
 
-    def removeAllSystemsFromCache(self, cacheType, handleDbConnection=True):
+    def removeAllSystemsFromCache(self, cacheType: int, handleDbConnection=True):
         if handleDbConnection:
             self.openLocalDatabase()
         if not self.isLocalDatabaseAccessible():

@@ -32,6 +32,9 @@ if __debug__:
 
 
 class BackgroundTask(object):
+    """
+    Template for new tasks.
+    """
     def __init__(self, rseData):
         self.rseData = rseData
 
