@@ -200,11 +200,12 @@ class VersionCheckTask(BackgroundTask):
             request = Request(RseData.VERSION_CHECK_URL)
             response = urlopen(request)
             newVersionInfo = json.loads(response.read())
-            if RseData.VERSION != newVersionInfo["version"]:
+            runningVersion = tuple(RseData.VERSION.split("."))
+            if runningVersion < tuple(newVersionInfo["version"].split(".")):
                 self.rseData.lastEventInfo[RseData.BG_UPDATE_JSON] = newVersionInfo
                 self.rseData.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
-        except ValueError:
-            pass  # ignore
+        except Exception as ignore:
+            if __debug__: print_exc()
 
 
 class TimedTask(BackgroundTask):
