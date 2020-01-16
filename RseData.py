@@ -104,7 +104,7 @@ class EliteSystem(object):
 class RseData(object):
 
     VERSION = "1.3"
-    VERSION_CHECK_URL = "https://gist.githubusercontent.com/Thurion/35553c9562297162a86722a28c7565ab/raw/RSE_update_info"
+    VERSION_CHECK_URL = "https://api.github.com/repos/Thurion/EDSM-RSE-for-EDMC/releases"
 
     # settings for search radius
     DEFAULT_RADIUS_EXPONENT = 2  # key for radius, see calculateRadius
