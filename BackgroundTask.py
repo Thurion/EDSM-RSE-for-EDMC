@@ -199,11 +199,16 @@ class VersionCheckTask(BackgroundTask):
         try:
             request = Request(RseData.VERSION_CHECK_URL)
             response = urlopen(request)
-            newVersionInfo = json.loads(response.read())
+            releasesInfo = json.loads(response.read())
             runningVersion = tuple(RseData.VERSION.split("."))
-            if runningVersion < tuple(newVersionInfo["version"].split(".")):
-                self.rseData.lastEventInfo[RseData.BG_UPDATE_JSON] = newVersionInfo
-                self.rseData.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
+            for releaseInfo in releasesInfo:
+                if not releaseInfo["draft"] and not releaseInfo["prerelease"]:
+                    newVersionText = releaseInfo["tag_name"].split("_")[1]
+                    newVersionInfo = tuple(newVersionText.split("."))
+                    if runningVersion < newVersionInfo:
+                        self.rseData.lastEventInfo[RseData.BG_UPDATE_JSON] = {"version": newVersionText, "url": releaseInfo["html_url"]}
+                        self.rseData.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
+                        break
         except Exception as ignore:
             if __debug__: print_exc()
 
