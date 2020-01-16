@@ -70,7 +70,7 @@ class BackgroundTaskClosestSystem(BackgroundTask):
             return None
 
     def removeSystems(self):
-        removeMe = filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList)
+        removeMe = list(filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList))
         if __debug__: print("adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]))
         self.rseData.systemList = [x for x in self.rseData.systemList if x not in removeMe]
         self.rseData.openLocalDatabase()
