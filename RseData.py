@@ -117,6 +117,7 @@ class RseData(object):
     # Values for projects
     PROJECT_RSE = 1
     PROJECT_NAVBEACON = 2
+    PROJECT_SCAN = 4
 
     # keys for dictionary that stores data from the background thread
     BG_RSE_SYSTEM = "bg_rse_system"  # RSE system as string
@@ -277,6 +278,8 @@ class RseData(object):
         systems = list()
         # make sure that the between statements are BETWEEN lower limit AND higher limit
         self.remoteDbCursor.execute(sql, queryDictionary)
+
+        scannedSystems = self.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES)
         for _row in self.remoteDbCursor.fetchall():
             id64, name, x2, y2, z2, uncertainty, action = _row
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
@@ -284,7 +287,13 @@ class RseData(object):
                 eliteSystem = EliteSystem(id64, name, x, y, z, uncertainty)
                 eliteSystem.addToProjects([rseProject for rseProject in self.projectsDict.values() if action & rseProject.projectId])
                 eliteSystem.distance = distance
-                systems.append(eliteSystem)
+
+                # special case: project 4 (scan bodies)
+                if RseData.PROJECT_SCAN in eliteSystem.getProjectIds() and eliteSystem.id64 in scannedSystems:
+                    eliteSystem.removeFromProject(RseData.PROJECT_SCAN)
+
+                if len(eliteSystem.getProjectIds()) > 0:
+                    systems.append(eliteSystem)
 
         # filter out systems that have been completed or are ignored
         systems = list(filter(lambda system: system.id64 not in self.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS), systems))
