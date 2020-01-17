@@ -19,12 +19,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import json
 import time
-import sys
 import math
 from RseData import RseData
 from urllib.parse import quote
 from urllib.request import urlopen, Request
-
 
 
 if __debug__:
@@ -231,24 +229,32 @@ class DeleteSystemsFromCacheTask(BackgroundTask):
         self.rseData.removeAllSystemsFromCache(self.cacheType)
 
 
-class EdsmBodyCheck(BackgroundTask):
+class EdsmBodyCheck(BackgroundTaskClosestSystem):
     def __init__(self, rseData):
         super(EdsmBodyCheck, self).__init__(rseData)
 
-    def fireEvent(self, message=None):
+    def fireEventEdsmBodyCheck(self, message=None):
         self.rseData.lastEventInfo[RseData.BG_EDSM_BODY] = message or "?"
         if self.rseData.frame:
             self.rseData.frame.event_generate(RseData.EVENT_RSE_EDSM_BODY_COUNT, when="tail")  # calls updateUI in main thread
 
 
 class FSSAllBodiesFoundTask(EdsmBodyCheck):
-    def __init__(self, rseData, id64):
+    def __init__(self, rseData, id64, edsmBodyCheck):
         super(FSSAllBodiesFoundTask, self).__init__(rseData)
         self.id64 = id64
+        self.edsmBodyCheck = edsmBodyCheck
 
     def execute(self):
-        self.rseData.addSystemToCache(self.id64, 2 ** 31 - 1, RseData.CACHE_FULLY_SCANNED_BODIES)
-        self.fireEvent("System complete")
+        system = self.getSystemFromID(self.id64)
+        if system:
+            system.removeFromProject(RseData.PROJECT_SCAN)
+            self.removeSystems()
+            self.fireEvent()
+
+        if self.edsmBodyCheck:
+            self.rseData.addSystemToCache(self.id64, 2 ** 31 - 1, RseData.CACHE_FULLY_SCANNED_BODIES)  # overwrites entry in DB if it was set before
+            self.fireEventEdsmBodyCheck("System complete")
 
 
 class FSSDiscoveryScanTask(EdsmBodyCheck):
@@ -281,6 +287,6 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
         if id64:
             if self.bodyCount == knownToEdsm:
                 self.rseData.addSystemToCache(id64, int(math.pow(2, 31)) - 1, RseData.CACHE_FULLY_SCANNED_BODIES)
-            self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM=knownToEdsm))
+            self.fireEventEdsmBodyCheck("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM=knownToEdsm))
         else:
-            self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM="?"))
+            self.fireEventEdsmBodyCheck("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM="?"))

@@ -327,9 +327,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 this.queue.put(BackgroundTask.FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"], entry["Progress"]))
         this.systemScanned = True
 
-    if entry["event"] == "FSSAllBodiesFound" and this.edsmBodyCheck.get():
+    if entry["event"] == "FSSAllBodiesFound":
         this.systemScanned = True
-        this.queue.put(BackgroundTask.FSSAllBodiesFoundTask(this.rseData, entry["SystemAddress"]))
+        this.queue.put(BackgroundTask.FSSAllBodiesFoundTask(this.rseData, entry["SystemAddress"], this.edsmBodyCheck.get()))
 
 
 def edsm_notify_system(reply):
