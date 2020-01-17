@@ -279,7 +279,7 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
 
     def execute(self):
         if self.progress == 1.0:
-            self.fireEvent("System complete")
+            self.fireEventEdsmBodyCheck("System complete")
             # no need to call EDSM's API here because all bodies are found and will be submitted to EDSM
             return
 
