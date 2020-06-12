@@ -153,7 +153,7 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                     for system in systemsWithCoordinates:
                         system.removeFromProject(RseData.PROJECT_RSE)
                     self.removeSystems()
-                    closestSystems = filter(lambda s: s.name.lower() in edsmResults, closestSystems)
+                    closestSystems = list(filter(lambda s: s.name.lower() in edsmResults, closestSystems))
                 if len(closestSystems) > 0:
                     # there are still systems in the results -> stop here
                     break
