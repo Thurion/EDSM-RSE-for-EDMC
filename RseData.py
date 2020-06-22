@@ -23,27 +23,33 @@ import time
 import math
 import sqlite3
 import json
-from urllib.request import urlopen
-from typing import Dict, List, Any, Set
+
+try:
+    # Python 2
+    from urllib2 import urlopen
+except ModuleNotFoundError:
+    # Python 3
+    from urllib.request import urlopen
+    # from typing import Dict, List, Any, Set
 
 
 class RseProject(object):
-    def __init__(self, projectId: int, actionText: str, name: str, explanation: str, enabled: int):
-        self.projectId = projectId
-        self.actionText = actionText
+    def __init__(self, projectId, actionText, name, explanation, enabled):
+        self.projectId = projectId  # type: int
+        self.actionText = actionText  # type: str
         self.name = name
         self.explanation = explanation
-        self.enabled = enabled
+        self.enabled = enabled  # type: int
 
 
 class EliteSystem(object):
-    def __init__(self, id64: int, name: str, x, y, z, uncertainty: int = 0):
+    def __init__(self, id64, name, x, y, z, uncertainty = 0):
         self.id64 = id64
         self.name = name
         self.x = x
         self.y = y
         self.z = z
-        self.uncertainty = uncertainty
+        self.uncertainty = uncertainty  # type: int
         self.distance = 10000  # set initial value to be out of reach
         self.__rseProjects = dict()  # type: Dict[int, RseProject]
 
@@ -57,24 +63,29 @@ class EliteSystem(object):
     def calculateDistanceToCoordinates(self, x2, y2, z2):
         return self.calculateDistance(self.x, x2, self.y, y2, self.z, z2)
 
-    def removeFromProject(self, projectId: int):
+    def removeFromProject(self, projectId):
         if projectId in self.__rseProjects:
             del self.__rseProjects[projectId]
 
     def removeFromAllProjects(self):
         self.__rseProjects.clear()
 
-    def addToProject(self, rseProject: RseProject):
+    def addToProject(self, rseProject):
         self.__rseProjects.setdefault(rseProject.projectId, rseProject)
 
-    def addToProjects(self, rseProjects: List[RseProject]):
-        for rseProject in rseProjects:
+    def addToProjects(self, rseProjects):
+        for rseProject in rseProjects:  # type: List[RseProject]
             self.addToProject(rseProject)
 
     def getProjectIds(self):
         return self.__rseProjects.keys()
 
-    def calculateDistanceToSystem(self, system2: "EliteSystem"):
+    def calculateDistanceToSystem(self, system2):
+        """
+        Calculate distance to other EliteSystem
+        :param system2: EliteSystem
+        :return: distance as float
+        """
         return self.calculateDistanceToCoordinates(system2.x, system2.y, system2.z)
 
     def getActionText(self):
@@ -136,14 +147,14 @@ class RseData(object):
     CACHE_FULLY_SCANNED_BODIES = 2
     CACHE_EDSM_RSE_QUERY = 3
 
-    def __init__(self, pluginDir: str, radiusExponent: int = DEFAULT_RADIUS_EXPONENT):
-        self.pluginDir = pluginDir
+    def __init__(self, pluginDir, radiusExponent = DEFAULT_RADIUS_EXPONENT):
+        self.pluginDir = pluginDir  # type: str
         self.newVersionInfo = None
         self.systemList = list()  # type: List[EliteSystem] # nearby systems, sorted by distance
         self.projectsDict = dict()  # type: Dict[int, RseProject] # key = ID
         self.frame = None
         self.lastEventInfo = dict()  # type: Dict[str, Any] # used to pass values to UI. don't assign a new value! use clear() instead
-        self.radiusExponent = radiusExponent
+        self.radiusExponent = radiusExponent  # type: int
         self.frame = None  # tk frame
         self.remoteDbCursor = None
         self.remoteDbConnection = None
@@ -158,8 +169,12 @@ class RseData(object):
         """
         self.__cachedSystems = dict()  # type: Dict[int, Set[int]]
 
-    def getCachedSet(self, cacheType: int) -> Set[int]:
-        """ Return set of cached systems or empty set. """
+    def getCachedSet(self, cacheType):
+        """
+        Return set of cached systems or empty set.
+        :param cacheType: int
+        :return:
+        """
         if cacheType in self.__cachedSystems:
             return self.__cachedSystems.get(cacheType)
         else:
@@ -198,7 +213,7 @@ class RseData(object):
     def isLocalDatabaseAccessible(self):
         return hasattr(self, "localDbCursor") and self.localDbCursor
 
-    def adjustRadiusExponent(self, numberOfSystems: int):
+    def adjustRadiusExponent(self, numberOfSystems):
         """
         Adjust the radius to ensure that not too many systems are found (decrease network traffic and database load)
         :param numberOfSystems:  number of systems found the last time
@@ -217,7 +232,7 @@ class RseData(object):
     def calculateRadius(self):
         return 39 + 11 * (2 ** self.radiusExponent)
 
-    def generateIgnoredActionsList(self) -> Set[int]:
+    def generateIgnoredActionsList(self):
         """
         TODO
         currently it ignores all systems that are part of a project. lets say we have a system that is part of 2 projects
@@ -249,7 +264,7 @@ class RseData(object):
         systems = list()
         scannedSystems = self.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES)
 
-        rseUrl = f"https://cyberlord.de/rse/systems.py?x={x}&y={y}&z={z}&radius={self.calculateRadius()}&flags={flags}"
+        rseUrl = "https://cyberlord.de/rse/systems.py?x={x}&y={y}&z={z}&radius={radius}&flags={flags}".format(x=x, y=y, z=z, radius=self.calculateRadius(), flags=flags)
         try:
             url = urlopen(rseUrl, timeout=10)
             if url.getcode() != 200:
@@ -308,7 +323,7 @@ class RseData(object):
         if handleDbConnection:
             self.closeLocalDatabase()
 
-    def removeAllSystemsFromCache(self, cacheType: int, handleDbConnection=True):
+    def removeAllSystemsFromCache(self, cacheType, handleDbConnection=True):
         if handleDbConnection:
             self.openLocalDatabase()
         if not self.isLocalDatabaseAccessible():
