@@ -19,13 +19,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import sys
 import time
-from typing import Dict
-from queue import Queue
 
-from urllib.parse import quote
-import tkinter as tk
-import tkinter.ttk as ttk
-import tkinter.messagebox as tkMessageBox
+try:
+    # Python 2
+    from Queue import Queue
+    from urllib2 import quote
+    from urllib2 import urlopen
+    import Tkinter as tk
+    import ttk
+    import tkMessageBox as tkMessageBox
+except ModuleNotFoundError:
+    # Python 3
+    from queue import Queue
+    from urllib.parse import quote
+    from urllib.request import urlopen
+    from typing import Dict
+    import tkinter as tk
+    import tkinter.ttk as ttk
+    import tkinter.messagebox as tkMessageBox
+
 
 import myNotebook as nb
 from ttkHyperlinkLabel import HyperlinkLabel
@@ -92,7 +104,7 @@ def checkTransmissionOptions():
     return eddn or edsm
 
 
-def plugin_start3(plugin_dir):
+def plugin_start(plugin_dir):
     this.rseData = RseData(plugin_dir)
     settings = config.getint(this.CONFIG_MAIN) or 0  # default setting
     this.rseData.ignoredProjectsFlags = config.getint(this.CONFIG_IGNORED_PROJECTS)
@@ -110,6 +122,10 @@ def plugin_start3(plugin_dir):
     this.worker.start()
 
     return "EDSM-RSE"
+
+
+def plugin_start3(plugin_dir):
+    plugin_start(plugin_dir)
 
 
 def updateUiUnconfirmedSystem(event=None):
