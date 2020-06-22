@@ -27,9 +27,11 @@ import json
 try:
     # Python 2
     from urllib2 import urlopen
+    from urllib import urlencode
 except ModuleNotFoundError:
     # Python 3
     from urllib.request import urlopen
+    from urllib.parse import urlencode
     # from typing import Dict, List, Any, Set
 
 
@@ -244,23 +246,27 @@ class RseData(object):
         if len(enabledFlags) == 0:
             return False
 
-        if len(enabledFlags) == 2 ** len(self.projectsDict.values()):  # all projects are enabled, no need to specify any
+        if len(enabledFlags) == 2 ** len(self.projectsDict.values()) - 1:  # all projects are enabled, no need to specify any
             flags = list()
         else:
-            flags = enabledFlags
+            flags = list(enabledFlags)
 
         systems = list()
         scannedSystems = self.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES)
-
-        rseUrl = "https://cyberlord.de/rse/systems.py?x={x}&y={y}&z={z}&radius={radius}&flags={flags}".format(x=x, y=y, z=z, radius=self.calculateRadius(), flags=flags)
+        params = {"x": x, "y": y, "z": z,
+                  "radius": self.calculateRadius(),
+                  "flags": flags}
+        rseUrl = "https://cyberlord.de/rse/systems.py?" + urlencode(params)
         try:
             url = urlopen(rseUrl, timeout=10)
             if url.getcode() != 200:
                 # some error occurred
+                if __debug__: print("EDSM-RSE: error fetching nearby systems. HTTP code: " + url.getcode())
                 return False
             response = url.read()
-        except:
+        except Exception as e:
             # some error occurred
+            if __debug__: print("EDSM-RSE: error fetching nearby systems: " + str(e))
             return False
 
         rseJson = json.loads(response)
