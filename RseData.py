@@ -22,7 +22,8 @@ import os
 import time
 import math
 import sqlite3
-import psycopg2
+import json
+from urllib.request import urlopen
 from typing import Dict, List, Any, Set
 
 
@@ -167,17 +168,6 @@ class RseData(object):
     def setFrame(self, frame):
         self.frame = frame
 
-    def openRemoteDatabase(self):
-        try:
-            self.remoteDbConnection = psycopg2.connect(host="cyberlord.de", port=5432, dbname="edmc_rse_db", user="edmc_rse_user",
-                                                       password="asdfplkjiouw3875948zksmdxnf", application_name="EDSM-RSE {}".format(RseData.VERSION), connect_timeout=10)
-            self.remoteDbCursor = self.remoteDbConnection.cursor()
-        except Exception as e:
-            if __debug__:
-                print("Remote database could not be opened")
-            plug.show_error("EDSM-RSE: Remote database could not be opened")
-            sys.stderr.write("EDSM-RSE: Remote database could not be opened\n")
-
     def closeRemoteDatabase(self):
         if not self.isRemoteDatabaseAccessible():
             return  # database not loaded
@@ -246,42 +236,40 @@ class RseData(object):
                 enabledFlags.add(flag)
         return enabledFlags
 
-    def generateListsFromRemoteDatabase(self, x, y, z, handleDbConnection=True):
-        if handleDbConnection:
-            self.openRemoteDatabase()
-
+    def generateListsFromRemoteDatabase(self, x, y, z):
         enabledFlags = self.generateIgnoredActionsList()
-        if not self.isRemoteDatabaseAccessible() or len(enabledFlags) == 0:
+        if len(enabledFlags) == 0:
             return False
 
-        queryDictionary = {
-            "x1": x - self.calculateRadius(),
-            "x2": x + self.calculateRadius(),
-            "y1": y - self.calculateRadius(),
-            "y2": y + self.calculateRadius(),
-            "z1": z - self.calculateRadius(),
-            "z2": z + self.calculateRadius()}
-
-        if len(enabledFlags) == 2 ** len(self.projectsDict.values()):  # all projects are enabled
-            whereCondition = "deleted_at IS NULL;"
+        if len(enabledFlags) == 2 ** len(self.projectsDict.values()):  # all projects are enabled, no need to specify any
+            flags = list()
         else:
-            whereCondition = "deleted_at IS NULL AND action_todo = ANY(%(flags)s);"
-            queryDictionary.setdefault("flags", list(enabledFlags))
+            flags = enabledFlags
 
-        sql = " ".join([
-            "SELECT id, name, x, y, z, uncertainty, action_todo FROM systems WHERE",
-            "systems.x BETWEEN %(x1)s AND %(x2)s AND",
-            "systems.y BETWEEN %(y1)s AND %(y2)s AND",
-            "systems.z BETWEEN %(z1)s AND %(z2)s AND",
-            whereCondition
-        ])
         systems = list()
-        # make sure that the between statements are BETWEEN lower limit AND higher limit
-        self.remoteDbCursor.execute(sql, queryDictionary)
-
         scannedSystems = self.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES)
-        for _row in self.remoteDbCursor.fetchall():
-            id64, name, x2, y2, z2, uncertainty, action = _row
+
+        rseUrl = f"https://cyberlord.de/rse/systems.py?x={x}&y={y}&z={z}&radius={self.calculateRadius()}&flags={flags}"
+        try:
+            url = urlopen(rseUrl, timeout=10)
+            if url.getcode() != 200:
+                # some error occurred
+                return False
+            response = url.read()
+        except:
+            # some error occurred
+            return False
+
+        rseJson = json.loads(response)
+        for _row in rseJson:
+            id64 = _row["id"]
+            name = _row["name"]
+            x2 = _row["x"]
+            y2 = _row["y"]
+            z2 = _row["z"]
+            uncertainty = _row["uncertainty"]
+            action = _row["action_todo"]
+
             distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
             if distance <= self.calculateRadius():
                 eliteSystem = EliteSystem(id64, name, x, y, z, uncertainty)
@@ -294,16 +282,11 @@ class RseData(object):
 
                 if len(eliteSystem.getProjectIds()) > 0:
                     systems.append(eliteSystem)
-
         # filter out systems that have been completed or are ignored
         systems = list(filter(lambda system: system.id64 not in self.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS), systems))
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
-
-        if handleDbConnection:
-            self.closeRemoteDatabase()
-
         return True
 
     def removeExpiredSystemsFromCaches(self, handleDbConnection=True):
@@ -366,11 +349,10 @@ class RseData(object):
             self.closeLocalDatabase()
 
         # initialize dictionaries
-        self.openRemoteDatabase()
-        if self.isRemoteDatabaseAccessible():
-            if len(self.projectsDict) == 0:
-                self.remoteDbCursor.execute("SELECT id, action_text, project_name, explanation, enabled FROM projects")
-                for _row in self.remoteDbCursor.fetchall():
-                    rseProject = RseProject(*_row)
-                    self.projectsDict[rseProject.projectId] = rseProject
-            self.closeRemoteDatabase()
+        # self.openRemoteDatabase()
+        if len(self.projectsDict) == 0:
+            url = urlopen("https://cyberlord.de/rse/projects.py", timeout=10)
+            response = url.read()
+            for _row in json.loads(response):
+                rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
+                self.projectsDict[rseProject.projectId] = rseProject
