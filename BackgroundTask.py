@@ -44,12 +44,12 @@ class BackgroundTask(object):
 
     def execute(self):
         if __debug__:
-            print("{} didn't implement execute".format(self.__class__.__name__))
+            print("EDSM-RSE: {} didn't implement execute".format(self.__class__.__name__))
         pass  # to be implemented by subclass
 
     def fireEvent(self):
         if __debug__:
-            print("{} didn't implement fireEvent".format(self.__class__.__name__))
+            print("EDSM-RSE: {} didn't implement fireEvent".format(self.__class__.__name__))
         pass  # to be implemented by subclass
 
 
@@ -75,7 +75,7 @@ class BackgroundTaskClosestSystem(BackgroundTask):
 
     def removeSystems(self):
         removeMe = list(filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList))
-        if __debug__: print("adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]))
+        if __debug__: print("EDSM-RSE: adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]))
         self.rseData.systemList = [x for x in self.rseData.systemList if x not in removeMe]
         self.rseData.openLocalDatabase()
         for system in removeMe:
@@ -116,7 +116,7 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                 addToCache.append(system.id64)
         edsmUrl += "&".join(params)
 
-        if __debug__: print("querying EDSM for {} systems".format(len(params)))
+        if __debug__: print("EDSM-RSE: querying EDSM for {} systems".format(len(params)))
         if len(params) > 0:
             try:
                 url = urlopen(edsmUrl, timeout=10)
@@ -141,7 +141,7 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
         system = self.getSystemFromID(self.systemAddress)
 
         if system:  # arrived in system without coordinates
-            if __debug__: print("arrived in {}".format(system.name))
+            if __debug__: print("EDSM-RSE: arrived in {}".format(system.name))
             system.removeFromProject(RseData.PROJECT_RSE)
             self.removeSystems()
 
@@ -273,7 +273,7 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
     def queryEdsm(self):
         edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=quote(self.systemName))
         if __debug__:
-            print("querying EDSM for bodies of system {}".format(self.systemName))
+            print("EDSM-RSE: querying EDSM for bodies of system {}".format(self.systemName))
         try:
             url = urlopen(edsmUrl, timeout=10)
             response = url.read()
