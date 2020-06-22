@@ -156,8 +156,6 @@ class RseData(object):
         self.lastEventInfo = dict()  # type: Dict[str, Any] # used to pass values to UI. don't assign a new value! use clear() instead
         self.radiusExponent = radiusExponent  # type: int
         self.frame = None  # tk frame
-        self.remoteDbCursor = None
-        self.remoteDbConnection = None
         self.localDbCursor = None
         self.localDbConnection = None
         self.ignoredProjectsFlags = 0  # bit mask of ignored projects (AND of all their IDs)
@@ -182,16 +180,6 @@ class RseData(object):
 
     def setFrame(self, frame):
         self.frame = frame
-
-    def closeRemoteDatabase(self):
-        if not self.isRemoteDatabaseAccessible():
-            return  # database not loaded
-        self.remoteDbConnection.close()
-        self.remoteDbCursor = None
-        self.remoteDbConnection = None
-
-    def isRemoteDatabaseAccessible(self):
-        return hasattr(self, "remoteDbCursor") and self.remoteDbCursor
 
     def openLocalDatabase(self):
         try:
