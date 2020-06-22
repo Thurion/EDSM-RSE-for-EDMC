@@ -189,7 +189,7 @@ class RseData(object):
             self.localDbCursor = self.localDbConnection.cursor()
         except Exception as e:
             if __debug__:
-                print("Local cache database could not be opened")
+                print("EDSM-RSE: Local cache database could not be opened")
             plug.show_error("EDSM-RSE: Local cache database could not be opened")
             sys.stderr.write("EDSM-RSE: Local cache database could not be opened\n")
 
@@ -212,12 +212,12 @@ class RseData(object):
             self.radiusExponent += 1
             if self.radiusExponent > RseData.MAX_RADIUS:
                 self.radiusExponent = 10
-            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
+            if __debug__: print("EDSM-RSE: found {0} systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
             self.radiusExponent -= 1
             if self.radiusExponent < 0:
                 self.radiusExponent = 0
-            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
+            if __debug__: print("EDSM-RSE: found {0} systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
 
     def calculateRadius(self):
         return 39 + 11 * (2 ** self.radiusExponent)
