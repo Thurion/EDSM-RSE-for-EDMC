@@ -45,7 +45,7 @@ class RseProject(object):
 
 
 class EliteSystem(object):
-    def __init__(self, id64, name, x, y, z, uncertainty = 0):
+    def __init__(self, id64, name, x, y, z, uncertainty=0):
         self.id64 = id64
         self.name = name
         self.x = x
@@ -59,11 +59,14 @@ class EliteSystem(object):
     def calculateDistance(x1, x2, y1, y2, z1, z2):
         return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
 
+    def getCoordinates(self):
+        return self.x, self.y, self.x
+
     def updateDistanceToCurrentCommanderPosition(self, x, y, z):
         self.distance = self.calculateDistanceToCoordinates(x, y, z)
 
-    def calculateDistanceToCoordinates(self, x2, y2, z2):
-        return self.calculateDistance(self.x, x2, self.y, y2, self.z, z2)
+    def calculateDistanceToCoordinates(self, x, y, z):
+        return self.calculateDistance(self.x, x, self.y, y, self.z, z)
 
     def removeFromProject(self, projectId):
         if projectId in self.__rseProjects:
@@ -241,7 +244,16 @@ class RseData(object):
                 enabledFlags.add(flag)
         return enabledFlags
 
-    def generateListsFromRemoteDatabase(self, x, y, z):
+    def generateListsFromRemoteDatabase(self, cmdr_x, cmdr_y, cmdr_z):
+        """
+        Takes coordinates of commander and queries the server for systems that are in range. It takes the current set radius and sets any newly found
+        systems to self.systemList. Returns True if new systems were found and False if no new systems were found.
+
+        :param cmdr_x: x coordinate of current position
+        :param cmdr_y: y coordinate of current position
+        :param cmdr_z: z coordinate of current position
+        :return: True when new systems were found and False if not
+        """
         enabledFlags = self.generateIgnoredActionsList()
         if len(enabledFlags) == 0:
             return False
@@ -251,9 +263,7 @@ class RseData(object):
         else:
             flags = list(enabledFlags)
 
-        systems = list()
-        scannedSystems = self.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES)
-        params = {"x": x, "y": y, "z": z,
+        params = {"x": cmdr_x, "y": cmdr_y, "z": cmdr_z,
                   "radius": self.calculateRadius(),
                   "flags": flags}
         rseUrl = "https://cyberlord.de/rse/systems.py?" + urlencode(params)
@@ -269,19 +279,22 @@ class RseData(object):
             if __debug__: print("EDSM-RSE: error fetching nearby systems: " + str(e))
             return False
 
+        systems = list()  # type: List[EliteSystem]
+        scannedSystems = self.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES)
+
         rseJson = json.loads(response)
         for _row in rseJson:
-            id64 = _row["id"]
-            name = _row["name"]
-            x2 = _row["x"]
-            y2 = _row["y"]
-            z2 = _row["z"]
+            rse_id64 = _row["id"]
+            rse_name = _row["name"]
+            rse_x = _row["x"]
+            rse_y = _row["y"]
+            rse_z = _row["z"]
             uncertainty = _row["uncertainty"]
             action = _row["action_todo"]
 
-            distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
+            distance = EliteSystem.calculateDistance(cmdr_x, rse_x, cmdr_y, rse_y, cmdr_z, rse_z)
             if distance <= self.calculateRadius():
-                eliteSystem = EliteSystem(id64, name, x, y, z, uncertainty)
+                eliteSystem = EliteSystem(rse_id64, rse_name, rse_x, rse_y, rse_z, uncertainty)
                 eliteSystem.addToProjects([rseProject for rseProject in self.projectsDict.values() if action & rseProject.projectId])
                 eliteSystem.distance = distance
 
@@ -291,6 +304,10 @@ class RseData(object):
 
                 if len(eliteSystem.getProjectIds()) > 0:
                     systems.append(eliteSystem)
+
+        if len(systems) == 0:
+            return False  # nothing new
+
         # filter out systems that have been completed or are ignored
         systems = list(filter(lambda system: system.id64 not in self.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS), systems))
         systems.sort(key=lambda l: l.distance)
