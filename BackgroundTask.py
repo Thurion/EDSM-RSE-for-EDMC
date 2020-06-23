@@ -147,13 +147,11 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
 
         if not self.rseData.generateListsFromRemoteDatabase(*self.coordinates):
             # distances need to be recalculated because we couldn't get a new list from the database
-            if __debug__: print("EDSM-RSE: Using cached system list for distances. Radius is set to {}".format(self.rseData.calculateRadius()))
+            if __debug__: print("EDSM-RSE: Using cached system list for distances. Radius was set to {}".format(self.rseData.calculateRadius()))
             for system in self.rseData.systemList:
                 system.updateDistanceToCurrentCommanderPosition(*self.coordinates)
             self.rseData.systemList.sort(key=lambda l: l.distance)
-        else:
-            # got systems from the database -> need to adjust radius
-            self.rseData.adjustRadiusExponent(len(self.rseData.systemList))
+        self.rseData.adjustRadiusExponent(len(self.rseData.systemList))
 
         lowerLimit = 0
         upperLimit = RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
