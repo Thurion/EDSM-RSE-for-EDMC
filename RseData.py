@@ -212,15 +212,21 @@ class RseData(object):
         :param numberOfSystems:  number of systems found the last time
         """
         if numberOfSystems <= RseData.RADIUS_ADJUSTMENT_INCREASE:
-            self.radiusExponent += 1
+            self.radiusExponent = int(self.radiusExponent) + 1
             if self.radiusExponent > RseData.MAX_RADIUS:
                 self.radiusExponent = 10
-            if __debug__: print("EDSM-RSE: found {0} systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
+            if __debug__: print("EDSM-RSE: Found too few systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
-            self.radiusExponent -= 1
+            if len(self.systemList) >= RseData.RADIUS_ADJUSTMENT_DECREASE:
+                distance = self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE].distance
+                self.radiusExponent = math.log((distance - 39) / 11, 2)
+            else:
+                self.radiusExponent = int(self.radiusExponent) - 1
             if self.radiusExponent < 0:
                 self.radiusExponent = 0
-            if __debug__: print("EDSM-RSE: found {0} systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
+            if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
+                self.radiusExponent = 10
+            if __debug__: print("EDSM-RSE: Found too many systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
 
     def calculateRadius(self):
         return 39 + 11 * (2 ** self.radiusExponent)
@@ -313,6 +319,7 @@ class RseData(object):
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
+        if __debug__: print("EDSM-RSE: found {systems} systems within {radius} ly".format(systems=len(systems), radius=self.calculateRadius()))
         return True
 
     def removeExpiredSystemsFromCaches(self, handleDbConnection=True):
