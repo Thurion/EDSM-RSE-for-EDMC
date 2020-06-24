@@ -60,7 +60,7 @@ class EliteSystem(object):
         return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
 
     def getCoordinates(self):
-        return self.x, self.y, self.x
+        return self.x, self.y, self.z
 
     def updateDistanceToCurrentCommanderPosition(self, x, y, z):
         self.distance = self.calculateDistanceToCoordinates(x, y, z)
