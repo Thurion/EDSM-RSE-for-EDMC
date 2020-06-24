@@ -1,12 +1,12 @@
 # Privacy Policy
 
-We only collect information that are stored in the automated log files of the database.
+We only collect information that are stored in the automated log files of the server.
 This Privacy Policy for EDSM-RSE is powered by FreePrivacyPolicy.com.
 
 We use your data to provide and improve the Service. By using the Service, you agree to the collection and use of information in accordance with this policy. 
 
 ## Date of Revision
-This policy was revised on April 19th, 2019.\
+This policy was revised on June 24th, 2020.\
 You can find all changes here on [Github](https://github.com/Thurion/EDSM-RSE-for-EDMC/commits/master/PRIVACY_POLICY.md).
 
 ## Information Collection And Use
