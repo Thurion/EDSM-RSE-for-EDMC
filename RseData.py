@@ -222,6 +222,8 @@ class RseData(object):
             # self.radiusExponent -= 1
             if self.radiusExponent < 0:
                 self.radiusExponent = 0
+            if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
+                self.radiusExponent = 10
             if __debug__: print("EDSM-RSE: Found too many systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
 
     def calculateRadius(self):
