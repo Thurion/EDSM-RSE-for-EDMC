@@ -391,11 +391,11 @@ class RseData(object):
     
     def printdebug(str, msgdebug):
         if msgdebug == False:
-            print("EDSM-RSE: {}" + str)
+            print("EDSM-RSE: {0}".format(str))
             return
         
         if msgdebug == True and RseData.debug == True:
-            print("EDSM-RSE(Debug): {}" + str)
+            print("EDSM-RSE(Debug): {0}".format(str))
             return
             
     def setdebug(set):
