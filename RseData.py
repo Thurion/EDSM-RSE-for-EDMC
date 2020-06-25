@@ -23,7 +23,6 @@ import time
 import math
 import sqlite3
 import json
-import debug
 
 try:
     # Python 2
@@ -123,6 +122,8 @@ class RseData(object):
 
     VERSION = "1.3"
     VERSION_CHECK_URL = "https://api.github.com/repos/Thurion/EDSM-RSE-for-EDMC/releases"
+    
+    debug = False
 
     # settings for search radius
     DEFAULT_RADIUS_EXPONENT = 2  # key for radius, see calculateRadius
@@ -192,7 +193,7 @@ class RseData(object):
             self.localDbConnection = sqlite3.connect(os.path.join(self.pluginDir, "cache.sqlite"))
             self.localDbCursor = self.localDbConnection.cursor()
         except Exception as e:
-            debug.printdebug("EDSM-RSE: Local cache database could not be opened", True)
+            RseData.printdebug("EDSM-RSE: Local cache database could not be opened", True)
             plug.show_error("EDSM-RSE: Local cache database could not be opened")
             sys.stderr.write("EDSM-RSE: Local cache database could not be opened\n")
 
@@ -215,7 +216,7 @@ class RseData(object):
             self.radiusExponent = int(self.radiusExponent) + 1
             if self.radiusExponent > RseData.MAX_RADIUS:
                 self.radiusExponent = 10
-            debug.printdebug("EDSM-RSE: Found too few systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
+            RseData.printdebug("EDSM-RSE: Found too few systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
             distance = self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE].distance
             self.radiusExponent = math.log((distance - 39) / 11, 2)
@@ -224,7 +225,7 @@ class RseData(object):
                 self.radiusExponent = 0
             if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
                 self.radiusExponent = 10
-            debug.printdebug("EDSM-RSE: Found too many systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
+            RseData.printdebug("EDSM-RSE: Found too many systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
 
     def calculateRadius(self):
         return 39 + 11 * (2 ** self.radiusExponent)
@@ -275,12 +276,12 @@ class RseData(object):
             url = urlopen(rseUrl, timeout=10)
             if url.getcode() != 200:
                 # some error occurred
-                debug.printdebug("EDSM-RSE: error fetching nearby systems. HTTP code: " + url.getcode(), True)
+                RseData.printdebug("EDSM-RSE: error fetching nearby systems. HTTP code: " + url.getcode(), True)
                 return False
             response = url.read()
         except Exception as e:
             # some error occurred
-            debug.printdebug("EDSM-RSE: error fetching nearby systems: " + str(e), True)
+            RseData.printdebug("EDSM-RSE: error fetching nearby systems: " + str(e), True)
             return False
 
         systems = list()  # type: List[EliteSystem]
@@ -317,7 +318,7 @@ class RseData(object):
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
-        debug.printdebug("EDSM-RSE: found {systems} systems within {radius} ly".format(systems=len(systems), radius=self.calculateRadius()), True)
+        RseData.printdebug("EDSM-RSE: found {systems} systems within {radius} ly".format(systems=len(systems), radius=self.calculateRadius()), True)
         return True
 
     def removeExpiredSystemsFromCaches(self, handleDbConnection=True):
@@ -387,3 +388,15 @@ class RseData(object):
             for _row in json.loads(response):
                 rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
                 self.projectsDict[rseProject.projectId] = rseProject
+    
+    def printdebug(str, msgdebug):
+        if msgdebug == False:
+            print("EDSM-RSE: {}" + str)
+            return
+        
+        if msgdebug == True and RseData.debug == True:
+            print("EDSM-RSE(Debug): {}" + str)
+            return
+            
+    def setdebug(set):
+        RseData.debug = set;

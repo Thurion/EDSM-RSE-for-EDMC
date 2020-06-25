@@ -38,8 +38,6 @@ except ModuleNotFoundError:
     import tkinter.ttk as ttk
     import tkinter.messagebox as tkMessageBox
 
-import debug as dbg
-
 import myNotebook as nb
 from ttkHyperlinkLabel import HyperlinkLabel
 from config import config
@@ -114,7 +112,7 @@ def plugin_start(plugin_dir):
     this.overwrite = tk.BooleanVar(value=((settings >> 6) & 0x01))
     this.edsmBodyCheck = tk.BooleanVar(value=not ((settings >> 7) & 0x01))  # invert to be on by default
     this.debug = tk.BooleanVar(value=((settings >> 8) & 0x01))
-    dbg.setdebug(this.debug.get())
+    RseData.setdebug(this.debug.get())
     
     this.enabled = checkTransmissionOptions()
 
@@ -265,7 +263,7 @@ def prefs_changed(cmdr, is_beta):
 
     config.set(this.CONFIG_IGNORED_PROJECTS, this.rseData.ignoredProjectsFlags)
     
-    dbg.setdebug(this.debug.get())
+    RseData.setdebug(this.debug.get())
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()

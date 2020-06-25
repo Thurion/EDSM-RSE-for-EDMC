@@ -21,8 +21,6 @@ from threading import Thread, Timer
 
 from BackgroundTask import TimedTask
 
-import debug
-
 if __debug__:
     from traceback import print_exc
 
@@ -35,7 +33,7 @@ class BackgroundWorker(Thread):
         self.timer = None
 
     def timerTask(self):
-        debug.printdebug("EDSM-RSE: timerTask triggered", True)
+        load.RseData.printdebug("EDSM-RSE: timerTask triggered", True)
         self.timer = Timer(self.interval, self.timerTask)
         self.timer.daemon = True
         self.timer.start()
@@ -56,7 +54,7 @@ class BackgroundWorker(Thread):
             self.queue.task_done()
 
         if self.timer:
-            debug.printdebug("EDSM-RSE: Stopping RSE background timer", True)
+            load.RseData.printdebug("EDSM-RSE: Stopping RSE background timer", True)
             self.timer.cancel()
             self.timer.join()
         self.queue.task_done()
