@@ -38,6 +38,7 @@ except ModuleNotFoundError:
     import tkinter.ttk as ttk
     import tkinter.messagebox as tkMessageBox
 
+import debug as dbg
 
 import myNotebook as nb
 from ttkHyperlinkLabel import HyperlinkLabel
@@ -65,6 +66,7 @@ this.worker = None  # type: BackgroundWorker
 this.queue = None  # type: Queue # queue used by the background worker
 
 # ui elements in options
+this.debug = None # Type: tk.BooleanVar # toggle debug messages to eddb log
 this.clipboard = None  # type: tk.BooleanVar # copy system name to clipboard
 this.overwrite = None  # type: tk.BooleanVar # overwrite disabled state (EDSM/EDDN disabled)
 this.edsmBodyCheck = None  # type: tk.BooleanVar # in settings; compare total number of bodies to the number known to EDSM
@@ -111,7 +113,9 @@ def plugin_start(plugin_dir):
     this.clipboard = tk.BooleanVar(value=((settings >> 5) & 0x01))
     this.overwrite = tk.BooleanVar(value=((settings >> 6) & 0x01))
     this.edsmBodyCheck = tk.BooleanVar(value=not ((settings >> 7) & 0x01))  # invert to be on by default
-
+    this.debug = tk.BooleanVar(value=((settings >> 8) & 0x01))
+    dbg.setdebug(this.debug.get())
+    
     this.enabled = checkTransmissionOptions()
 
     this.queue = Queue()
@@ -224,6 +228,8 @@ def plugin_prefs(parent, cmdr, is_beta):
     # links
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(RseData.VERSION)).grid(padx=PADX, sticky=tk.W)
+    nb.Checkbutton(frame, variable=this.debug,
+                   text="Enable Debug").grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"),
                    url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"),
@@ -238,7 +244,8 @@ def prefs_changed(cmdr, is_beta):
     # 6: copy to clipboard
     # 7: overwrite enabled status
     # 8: EDSM body check, value inverted
-    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | ((not this.edsmBodyCheck.get()) << 7)
+    # 9: Debug
+    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | ((not this.edsmBodyCheck.get()) << 7) | (this.debug.get() <<8)
     config.set(this.CONFIG_MAIN, settings)
     this.enabled = checkTransmissionOptions()
     this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
@@ -257,6 +264,8 @@ def prefs_changed(cmdr, is_beta):
             this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, this.currentSystem))
 
     config.set(this.CONFIG_IGNORED_PROJECTS, this.rseData.ignoredProjectsFlags)
+    
+    dbg.setdebug(this.debug.get())
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()
