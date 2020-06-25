@@ -43,11 +43,11 @@ class BackgroundTask(object):
         self.rseData = rseData
 
     def execute(self):
-        RseData.printdebug("EDSM-RSE: {} didn't implement execute".format(self.__class__.__name__), True)
+        RseData.printdebug("{} didn't implement execute".format(self.__class__.__name__), True)
         pass  # to be implemented by subclass
 
     def fireEvent(self):
-        RseData.printdebug("EDSM-RSE: {} didn't implement fireEvent".format(self.__class__.__name__), True)
+        RseData.printdebug("{} didn't implement fireEvent".format(self.__class__.__name__), True)
         pass  # to be implemented by subclass
 
 
@@ -73,7 +73,7 @@ class BackgroundTaskClosestSystem(BackgroundTask):
 
     def removeSystems(self):
         removeMe = list(filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList))
-        RseData.printdebug("EDSM-RSE: adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]), True)
+        RseData.printdebug("adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]), True)
         self.rseData.systemList = [x for x in self.rseData.systemList if x not in removeMe]
         self.rseData.openLocalDatabase()
         for system in removeMe:
@@ -114,7 +114,7 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                 addToCache.append(system.id64)
         edsmUrl += "&".join(params)
 
-        RseData.printdebug("EDSM-RSE: querying EDSM for {} systems".format(len(params)), True)
+        RseData.printdebug("querying EDSM for {} systems".format(len(params)), True)
         if len(params) > 0:
             try:
                 url = urlopen(edsmUrl, timeout=10)
@@ -139,13 +139,13 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
         system = self.getSystemFromID(self.systemAddress)
 
         if system:  # arrived in system without coordinates
-            RseData.printdebug("EDSM-RSE: arrived in {}".format(system.name), True)
+            RseData.printdebug("arrived in {}".format(system.name), True)
             system.removeFromProject(RseData.PROJECT_RSE)
             self.removeSystems()
 
         if not self.rseData.generateListsFromRemoteDatabase(*self.coordinates):
             # distances need to be recalculated because we couldn't get a new list from the database
-            RseData.printdebug("EDSM-RSE: Using cached system list for distances. Radius was set to {}".format(self.rseData.calculateRadius()), True)
+            RseData.printdebug("Using cached system list for distances. Radius was set to {}".format(self.rseData.calculateRadius()), True)
             for system in self.rseData.systemList:
                 system.updateDistanceToCurrentCommanderPosition(*self.coordinates)
             self.rseData.systemList.sort(key=lambda l: l.distance)
@@ -271,7 +271,7 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
     def queryEdsm(self):
         edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=quote(self.systemName))
         if __debug__:
-            print("EDSM-RSE: querying EDSM for bodies of system {}".format(self.systemName))
+            print("querying EDSM for bodies of system {}".format(self.systemName))
         try:
             url = urlopen(edsmUrl, timeout=10)
             response = url.read()
