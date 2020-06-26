@@ -226,7 +226,7 @@ def plugin_prefs(parent, cmdr, is_beta):
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(RseData.VERSION)).grid(padx=PADX, sticky=tk.W)
     nb.Checkbutton(frame, variable=this.debug,
-                   text="Enable Debug").grid(padx=PADX, sticky=tk.W)
+                   text="Verbose Logging").grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"),
                    url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"),
