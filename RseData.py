@@ -389,7 +389,8 @@ class RseData(object):
                 rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
                 self.projectsDict[rseProject.projectId] = rseProject
     
-    def printdebug(str, msgdebug):
+    def printdebug(self, str, msgdebug):
+
         if msgdebug == False:
             print("EDSM-RSE: {0}".format(str))
             return

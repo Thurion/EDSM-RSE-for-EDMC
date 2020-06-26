@@ -112,7 +112,7 @@ def plugin_start(plugin_dir):
     this.overwrite = tk.BooleanVar(value=((settings >> 6) & 0x01))
     this.edsmBodyCheck = tk.BooleanVar(value=not ((settings >> 7) & 0x01))  # invert to be on by default
     this.debug = tk.BooleanVar(value=((settings >> 8) & 0x01))
-    RseData.setdebug(this.debug.get())
+    this.rseData.debug(this.debug.get())
     
     this.enabled = checkTransmissionOptions()
 
@@ -243,7 +243,7 @@ def prefs_changed(cmdr, is_beta):
     # 7: overwrite enabled status
     # 8: EDSM body check, value inverted
     # 9: Debug
-    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | ((not this.edsmBodyCheck.get()) << 7) | (this.debug.get() <<8)
+    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | ((not this.edsmBodyCheck.get()) << 7) | (this.debug.get() << 8)
     config.set(this.CONFIG_MAIN, settings)
     this.enabled = checkTransmissionOptions()
     this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
@@ -263,7 +263,7 @@ def prefs_changed(cmdr, is_beta):
 
     config.set(this.CONFIG_IGNORED_PROJECTS, this.rseData.ignoredProjectsFlags)
     
-    RseData.setdebug(this.debug.get())
+    this.rseData.debug(this.debug.get())
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()

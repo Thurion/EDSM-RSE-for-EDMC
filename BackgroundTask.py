@@ -132,7 +132,8 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                 return names
             except:
                 # ignore. the EDSM call is not required
-                RseData.printdebug("EDSM query call failed.", True)
+                self.rseData.printdebug("EDSM query call failed.", True)
+
         return set()
 
     def execute(self):
@@ -278,7 +279,8 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
             edsmJson = json.loads(response)
             return edsmJson["id64"], len(edsmJson["bodies"])
         except:
-            RseData.printdebug("EDSM body count call failed.", True)
+            self.rseData.printdebug("EDSM body count call failed.", True)
+
         return None, None  # error/timeout occurred
 
     def execute(self):
