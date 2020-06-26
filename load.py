@@ -47,8 +47,6 @@ from RseData import RseData, EliteSystem
 from Backgroundworker import BackgroundWorker
 import BackgroundTask as BackgroundTask
 
-if __debug__:
-    from traceback import print_exc
 
 this = sys.modules[__name__]  # For holding module globals
 
@@ -123,7 +121,7 @@ def plugin_start(plugin_dir):
     this.worker.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
     this.worker.start()
 
-    return "EDSM-RSE"
+    return RseData.PLUGIN_NAME
 
 
 def plugin_start3(plugin_dir):
@@ -156,6 +154,8 @@ def updateUiUnconfirmedSystem(event=None):
             this.errorLabel["text"] = "EDSM/EDDN is disabled"
         else:
             this.errorLabel["text"] = message or "?"
+
+    this.rseData.printDebug("Debug messages are enabled.")
 
 
 def updateUiEdsmBodyCount(event=None):
