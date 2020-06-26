@@ -122,7 +122,6 @@ class RseData(object):
 
     VERSION = "1.3"
     VERSION_CHECK_URL = "https://api.github.com/repos/Thurion/EDSM-RSE-for-EDMC/releases"
-    PLUGIN_NAME = "EDSM-RSE"
 
     # settings for search radius
     DEFAULT_RADIUS_EXPONENT = 2  # key for radius, see calculateRadius
@@ -153,7 +152,7 @@ class RseData(object):
     CACHE_FULLY_SCANNED_BODIES = 2
     CACHE_EDSM_RSE_QUERY = 3
 
-    def __init__(self, pluginDir, radiusExponent=DEFAULT_RADIUS_EXPONENT):
+    def __init__(self, pluginDir, radiusExponent = DEFAULT_RADIUS_EXPONENT):
         self.pluginDir = pluginDir  # type: str
         self.newVersionInfo = None
         self.systemList = list()  # type: List[EliteSystem] # nearby systems, sorted by distance
@@ -193,9 +192,10 @@ class RseData(object):
             self.localDbConnection = sqlite3.connect(os.path.join(self.pluginDir, "cache.sqlite"))
             self.localDbCursor = self.localDbConnection.cursor()
         except Exception as e:
-            error_msg = "{plugin_name}: Local cache database could not be opened".format(plugin_name=RseData.PLUGIN_NAME)
-            print(error_msg)
-            plug.show_error(error_msg)
+            self.printdebug("Local cache database could not be opened", True)
+
+            plug.show_error("Local cache database could not be opened")
+            sys.stderr.write("Local cache database could not be opened\n")
 
     def closeLocalDatabase(self):
         if not self.isLocalDatabaseAccessible():
@@ -216,7 +216,7 @@ class RseData(object):
             self.radiusExponent = int(self.radiusExponent) + 1
             if self.radiusExponent > RseData.MAX_RADIUS:
                 self.radiusExponent = 10
-            self.printDebug("Found too few systems, increasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
+            self.printdebug("Found too few systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
 
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
             distance = self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE].distance
@@ -226,7 +226,8 @@ class RseData(object):
                 self.radiusExponent = 0
             if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
                 self.radiusExponent = 10
-            self.printDebug("Found too many systems, decreasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
+            self.printdebug("Found too many systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
+
 
     def calculateRadius(self):
         return 39 + 11 * (2 ** self.radiusExponent)
@@ -277,13 +278,13 @@ class RseData(object):
             url = urlopen(rseUrl, timeout=10)
             if url.getcode() != 200:
                 # some error occurred
-                self.printDebug("Error fetching nearby systems. HTTP code: {code}.".format(code=url.getcode()))
+                self.printdebug("error fetching nearby systems. HTTP code: " + url.getcode(), True)
 
                 return False
             response = url.read()
         except Exception as e:
             # some error occurred
-            self.printDebug("Error fetching nearby systems. Error: {e}".format(e=str(e)))
+            self.printdebug("error fetching nearby systems: " + str(e), True)
 
             return False
 
@@ -321,7 +322,7 @@ class RseData(object):
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
-        self.printDebug("Found {systems} systems within {radius} ly.".format(systems=len(systems), radius=self.calculateRadius()))
+        self.printdebug("found {systems} systems within {radius} ly".format(systems=len(systems), radius=self.calculateRadius()), True)
 
         return True
 
@@ -393,6 +394,12 @@ class RseData(object):
                 rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
                 self.projectsDict[rseProject.projectId] = rseProject
     
-    def printDebug(self, msg):
-        if self.debug:
-            print("{plugin_name} (Debug): {msg}".format(plugin_name=RseData.PLUGIN_NAME, msg=msg))
+    def printdebug(self, str, msgdebug):
+
+        if msgdebug == False:
+            print("EDSM-RSE: {0}".format(str))
+            return
+        
+        if msgdebug == True and this.debug == True:
+            print("EDSM-RSE(Debug): {0}".format(str))
+            return

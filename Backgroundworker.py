@@ -18,8 +18,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
 from threading import Thread, Timer
+
 from BackgroundTask import TimedTask
 
+if __debug__:
+    from traceback import print_exc
 
 class BackgroundWorker(Thread):
     def __init__(self, queue, rseData, interval=60 * 15):
@@ -30,7 +33,8 @@ class BackgroundWorker(Thread):
         self.timer = None
 
     def timerTask(self):
-        self.rseData.printDebug("TimerTask triggered.")
+        self.rseData.printdebug("timerTask triggered", True)
+
         self.timer = Timer(self.interval, self.timerTask)
         self.timer.daemon = True
         self.timer.start()
@@ -51,7 +55,8 @@ class BackgroundWorker(Thread):
             self.queue.task_done()
 
         if self.timer:
-            self.rseData.printDebug("Stopping RSE background timer.")
+            self.rseData.printdebug("Stopping RSE background timer", True)
+
             self.timer.cancel()
             self.timer.join()
         self.queue.task_done()

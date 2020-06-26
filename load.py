@@ -47,6 +47,8 @@ from RseData import RseData, EliteSystem
 from Backgroundworker import BackgroundWorker
 import BackgroundTask as BackgroundTask
 
+if __debug__:
+    from traceback import print_exc
 
 this = sys.modules[__name__]  # For holding module globals
 
@@ -121,7 +123,7 @@ def plugin_start(plugin_dir):
     this.worker.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
     this.worker.start()
 
-    return RseData.PLUGIN_NAME
+    return "EDSM-RSE"
 
 
 def plugin_start3(plugin_dir):
@@ -154,8 +156,6 @@ def updateUiUnconfirmedSystem(event=None):
             this.errorLabel["text"] = "EDSM/EDDN is disabled"
         else:
             this.errorLabel["text"] = message or "?"
-
-    this.rseData.printDebug("Debug messages are enabled.")
 
 
 def updateUiEdsmBodyCount(event=None):
@@ -227,7 +227,7 @@ def plugin_prefs(parent, cmdr, is_beta):
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(RseData.VERSION)).grid(padx=PADX, sticky=tk.W)
     nb.Checkbutton(frame, variable=this.debug,
-                   text="Enable Debug").grid(padx=PADX, sticky=tk.W)
+                   text="Verbose Logging").grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"),
                    url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"),
