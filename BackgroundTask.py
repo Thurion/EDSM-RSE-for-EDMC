@@ -278,11 +278,7 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
     def queryEdsm(self):
         edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=quote(self.systemName))
         if __debug__:
-<<<<<<< HEAD
             self.rseData.printdebug("querying EDSM for bodies of system {}".format(self.systemName))
-=======
-        self.rseData.printdebug("querying EDSM for bodies of system {}".format(self.systemName))
->>>>>>> parent of 4927bc3... Merge pull request #3 from Thurion/dev_1.3
 
         try:
             url = urlopen(edsmUrl, timeout=10)

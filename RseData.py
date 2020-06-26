@@ -164,7 +164,7 @@ class RseData(object):
         self.localDbCursor = None
         self.localDbConnection = None
         self.ignoredProjectsFlags = 0  # bit mask of ignored projects (AND of all their IDs)
-        self.debug = false
+        self.debug = False
 
         """ 
         Dictionary of sets that contain the cached systems. 
