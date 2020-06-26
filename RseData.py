@@ -122,8 +122,6 @@ class RseData(object):
 
     VERSION = "1.3"
     VERSION_CHECK_URL = "https://api.github.com/repos/Thurion/EDSM-RSE-for-EDMC/releases"
-    
-    debug = False
 
     # settings for search radius
     DEFAULT_RADIUS_EXPONENT = 2  # key for radius, see calculateRadius
@@ -166,6 +164,7 @@ class RseData(object):
         self.localDbCursor = None
         self.localDbConnection = None
         self.ignoredProjectsFlags = 0  # bit mask of ignored projects (AND of all their IDs)
+        self.debug = false
 
         """ 
         Dictionary of sets that contain the cached systems. 
@@ -395,9 +394,6 @@ class RseData(object):
             print("EDSM-RSE: {0}".format(str))
             return
         
-        if msgdebug == True and RseData.debug == True:
+        if msgdebug == True and this.debug == True:
             print("EDSM-RSE(Debug): {0}".format(str))
             return
-            
-    def setdebug(set):
-        RseData.debug = set;
