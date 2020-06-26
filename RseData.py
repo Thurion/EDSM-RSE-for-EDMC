@@ -192,7 +192,8 @@ class RseData(object):
             self.localDbConnection = sqlite3.connect(os.path.join(self.pluginDir, "cache.sqlite"))
             self.localDbCursor = self.localDbConnection.cursor()
         except Exception as e:
-            RseData.printdebug("Local cache database could not be opened", True)
+            self.printdebug("Local cache database could not be opened", True)
+
             plug.show_error("Local cache database could not be opened")
             sys.stderr.write("Local cache database could not be opened\n")
 
@@ -215,7 +216,8 @@ class RseData(object):
             self.radiusExponent = int(self.radiusExponent) + 1
             if self.radiusExponent > RseData.MAX_RADIUS:
                 self.radiusExponent = 10
-            RseData.printdebug("Found too few systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
+            self.printdebug("Found too few systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
+
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
             distance = self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE].distance
             self.radiusExponent = math.log((distance - 39) / 11, 2)
@@ -224,7 +226,8 @@ class RseData(object):
                 self.radiusExponent = 0
             if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
                 self.radiusExponent = 10
-            RseData.printdebug("Found too many systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
+            self.printdebug("Found too many systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()), True)
+
 
     def calculateRadius(self):
         return 39 + 11 * (2 ** self.radiusExponent)
@@ -275,12 +278,14 @@ class RseData(object):
             url = urlopen(rseUrl, timeout=10)
             if url.getcode() != 200:
                 # some error occurred
-                RseData.printdebug("error fetching nearby systems. HTTP code: " + url.getcode(), True)
+                self.printdebug("error fetching nearby systems. HTTP code: " + url.getcode(), True)
+
                 return False
             response = url.read()
         except Exception as e:
             # some error occurred
-            RseData.printdebug("error fetching nearby systems: " + str(e), True)
+            self.printdebug("error fetching nearby systems: " + str(e), True)
+
             return False
 
         systems = list()  # type: List[EliteSystem]
@@ -317,7 +322,8 @@ class RseData(object):
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
-        RseData.printdebug("found {systems} systems within {radius} ly".format(systems=len(systems), radius=self.calculateRadius()), True)
+        self.printdebug("found {systems} systems within {radius} ly".format(systems=len(systems), radius=self.calculateRadius()), True)
+
         return True
 
     def removeExpiredSystemsFromCaches(self, handleDbConnection=True):
