@@ -56,7 +56,7 @@ To disable one or more projects, go into the settings and remove the checkmark n
 
 ## Acknowledgments
 
-* RapidfireCRH came up with the idea originally. He can be found on the [EDCD discord](https://discord.gg/0uwCh6R62aQ0eeAX) helping people who run into problems. Just ask in the EDMC channel.
+* RapidfireCRH came up with the idea originally. He can be found on the [EDCD discord](https://discord.gg/0uwCh6R62aQ0eeAX) helping people who run into problems. Just ask in the EDMC-plugins channel.
 * The estimated coordinates for the systems were created by [EDTS](https://bitbucket.org/Esvandiary/edts)
 * Big thanks to Amiganer_Christian for hosting the remote server and helping with scan tracking.
 * This plugin is part of the EDMC repack by Six-Shooter. You can download the repack at http://edfs.space/index.php/Tools
