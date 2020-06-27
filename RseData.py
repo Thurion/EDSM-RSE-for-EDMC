@@ -16,23 +16,32 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
-
 import plug
 import sys
 import os
 import time
 import math
-import psycopg2
 import sqlite3
+import json
+
+try:
+    # Python 2
+    from urllib2 import urlopen
+    from urllib import urlencode
+except ModuleNotFoundError:
+    # Python 3
+    from urllib.request import urlopen
+    from urllib.parse import urlencode
+    # from typing import Dict, List, Any, Set
 
 
 class RseProject(object):
     def __init__(self, projectId, actionText, name, explanation, enabled):
-        self.projectId = projectId
-        self.actionText = actionText
+        self.projectId = projectId  # type: int
+        self.actionText = actionText  # type: str
         self.name = name
         self.explanation = explanation
-        self.enabled = enabled
+        self.enabled = enabled  # type: int
 
 
 class EliteSystem(object):
@@ -42,19 +51,22 @@ class EliteSystem(object):
         self.x = x
         self.y = y
         self.z = z
-        self.uncertainty = uncertainty
+        self.uncertainty = uncertainty  # type: int
         self.distance = 10000  # set initial value to be out of reach
-        self.__rseProjects = dict()
+        self.__rseProjects = dict()  # type: Dict[int, RseProject]
 
     @staticmethod
     def calculateDistance(x1, x2, y1, y2, z1, z2):
         return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
 
+    def getCoordinates(self):
+        return self.x, self.y, self.z
+
     def updateDistanceToCurrentCommanderPosition(self, x, y, z):
         self.distance = self.calculateDistanceToCoordinates(x, y, z)
 
-    def calculateDistanceToCoordinates(self, x2, y2, z2):
-        return self.calculateDistance(self.x, x2, self.y, y2, self.z, z2)
+    def calculateDistanceToCoordinates(self, x, y, z):
+        return self.calculateDistance(self.x, x, self.y, y, self.z, z)
 
     def removeFromProject(self, projectId):
         if projectId in self.__rseProjects:
@@ -67,13 +79,18 @@ class EliteSystem(object):
         self.__rseProjects.setdefault(rseProject.projectId, rseProject)
 
     def addToProjects(self, rseProjects):
-        for rseProject in rseProjects:
+        for rseProject in rseProjects:  # type: List[RseProject]
             self.addToProject(rseProject)
 
     def getProjectIds(self):
         return self.__rseProjects.keys()
 
     def calculateDistanceToSystem(self, system2):
+        """
+        Calculate distance to other EliteSystem
+        :param system2: EliteSystem
+        :return: distance as float
+        """
         return self.calculateDistanceToCoordinates(system2.x, system2.y, system2.z)
 
     def getActionText(self):
@@ -103,8 +120,9 @@ class EliteSystem(object):
 
 class RseData(object):
 
-    VERSION = "1.2"
-    VERSION_CHECK_URL = "https://gist.githubusercontent.com/Thurion/35553c9562297162a86722a28c7565ab/raw/RSE_update_info"
+    VERSION = "1.3"
+    VERSION_CHECK_URL = "https://api.github.com/repos/Thurion/EDSM-RSE-for-EDMC/releases"
+    PLUGIN_NAME = "EDSM-RSE"
 
     # settings for search radius
     DEFAULT_RADIUS_EXPONENT = 2  # key for radius, see calculateRadius
@@ -117,6 +135,7 @@ class RseData(object):
     # Values for projects
     PROJECT_RSE = 1
     PROJECT_NAVBEACON = 2
+    PROJECT_SCAN = 4
 
     # keys for dictionary that stores data from the background thread
     BG_RSE_SYSTEM = "bg_rse_system"  # RSE system as string
@@ -135,29 +154,32 @@ class RseData(object):
     CACHE_EDSM_RSE_QUERY = 3
 
     def __init__(self, pluginDir, radiusExponent=DEFAULT_RADIUS_EXPONENT):
-        self.pluginDir = pluginDir
+        self.pluginDir = pluginDir  # type: str
         self.newVersionInfo = None
-        self.systemList = list()  # nearby systems, sorted by distance
-        self.projectsDict = dict()  # key = ID, value = RseProject
+        self.systemList = list()  # type: List[EliteSystem] # nearby systems, sorted by distance
+        self.projectsDict = dict()  # type: Dict[int, RseProject] # key = ID
         self.frame = None
-        self.lastEventInfo = dict()  # used to pass values to UI. don't assign a new value! use clear() instead
-        self.radiusExponent = radiusExponent
+        self.lastEventInfo = dict()  # type: Dict[str, Any] # used to pass values to UI. don't assign a new value! use clear() instead
+        self.radiusExponent = radiusExponent  # type: int
         self.frame = None  # tk frame
-        self.remoteDbCursor = None
-        self.remoteDbConnection = None
         self.localDbCursor = None
         self.localDbConnection = None
         self.ignoredProjectsFlags = 0  # bit mask of ignored projects (AND of all their IDs)
+        self.debug = False
 
         """ 
         Dictionary of sets that contain the cached systems. 
         Key for the dictionary is the value of one of the CACHE_<type> variables. The value is the set that holds the corresponding systems 
         Key for set is the ID64 of the cached system
         """
-        self.__cachedSystems = dict()
+        self.__cachedSystems = dict()  # type: Dict[int, Set[int]]
 
     def getCachedSet(self, cacheType):
-        """ Return set of cached systems or empty set. """
+        """
+        Return set of cached systems or empty set.
+        :param cacheType: int
+        :return:
+        """
         if cacheType in self.__cachedSystems:
             return self.__cachedSystems.get(cacheType)
         else:
@@ -166,36 +188,14 @@ class RseData(object):
     def setFrame(self, frame):
         self.frame = frame
 
-    def openRemoteDatabase(self):
-        try:
-            self.remoteDbConnection = psycopg2.connect(host="cyberlord.de", port=5432, dbname="edmc_rse_db", user="edmc_rse_user",
-                                                       password="asdfplkjiouw3875948zksmdxnf", application_name="EDSM-RSE {}".format(RseData.VERSION), connect_timeout=10)
-            self.remoteDbCursor = self.remoteDbConnection.cursor()
-        except Exception as e:
-            if __debug__:
-                print("Remote database could not be opened")
-            plug.show_error("EDSM-RSE: Remote database could not be opened")
-            sys.stderr.write("EDSM-RSE: Remote database could not be opened\n")
-
-    def closeRemoteDatabase(self):
-        if not self.isRemoteDatabaseAccessible():
-            return  # database not loaded
-        self.remoteDbConnection.close()
-        self.remoteDbCursor = None
-        self.remoteDbConnection = None
-
-    def isRemoteDatabaseAccessible(self):
-        return hasattr(self, "remoteDbCursor") and self.remoteDbCursor
-
     def openLocalDatabase(self):
         try:
             self.localDbConnection = sqlite3.connect(os.path.join(self.pluginDir, "cache.sqlite"))
             self.localDbCursor = self.localDbConnection.cursor()
         except Exception as e:
-            if __debug__:
-                print("Local cache database could not be opened")
-            plug.show_error("EDSM-RSE: Local cache database could not be opened")
-            sys.stderr.write("EDSM-RSE: Local cache database could not be opened\n")
+            error_msg = "{plugin_name}: Local cache database could not be opened".format(plugin_name=RseData.PLUGIN_NAME)
+            print(error_msg)
+            plug.show_error(error_msg)
 
     def closeLocalDatabase(self):
         if not self.isLocalDatabaseAccessible():
@@ -208,16 +208,27 @@ class RseData(object):
         return hasattr(self, "localDbCursor") and self.localDbCursor
 
     def adjustRadiusExponent(self, numberOfSystems):
+        """
+        Adjust the radius to ensure that not too many systems are found (decrease network traffic and database load)
+        :param numberOfSystems:  number of systems found the last time
+        """
         if numberOfSystems <= RseData.RADIUS_ADJUSTMENT_INCREASE:
-            self.radiusExponent += 1
+            self.radiusExponent = int(self.radiusExponent) + 1
             if self.radiusExponent > RseData.MAX_RADIUS:
                 self.radiusExponent = 10
-            if __debug__: print("found {0} systems, increasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
+            self.printDebug("Found too few systems, increasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
+
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
-            self.radiusExponent -= 1
+            if len(self.systemList) >= RseData.RADIUS_ADJUSTMENT_DECREASE:
+                distance = self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE].distance
+                self.radiusExponent = math.log((distance - 39) / 11, 2)
+            else:
+                self.radiusExponent = int(self.radiusExponent) - 1
             if self.radiusExponent < 0:
                 self.radiusExponent = 0
-            if __debug__: print("found {0} systems, decreasing radius to {1}".format(numberOfSystems, self.calculateRadius()))
+            if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
+                self.radiusExponent = 10
+            self.printDebug("Found too many systems, decreasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
 
     def calculateRadius(self):
         return 39 + 11 * (2 ** self.radiusExponent)
@@ -241,56 +252,78 @@ class RseData(object):
                 enabledFlags.add(flag)
         return enabledFlags
 
-    def generateListsFromRemoteDatabase(self, x, y, z, handleDbConnection=True):
-        if handleDbConnection:
-            self.openRemoteDatabase()
+    def generateListsFromRemoteDatabase(self, cmdr_x, cmdr_y, cmdr_z):
+        """
+        Takes coordinates of commander and queries the server for systems that are in range. It takes the current set radius and sets any newly found
+        systems to self.systemList. Returns True if new systems were found and False if no new systems were found.
 
+        :param cmdr_x: x coordinate of current position
+        :param cmdr_y: y coordinate of current position
+        :param cmdr_z: z coordinate of current position
+        :return: True when new systems were found and False if not
+        """
         enabledFlags = self.generateIgnoredActionsList()
-        if not self.isRemoteDatabaseAccessible() or len(enabledFlags) == 0:
+        if len(enabledFlags) == 0:
             return False
 
-        queryDictionary = {
-            "x1": x - self.calculateRadius(),
-            "x2": x + self.calculateRadius(),
-            "y1": y - self.calculateRadius(),
-            "y2": y + self.calculateRadius(),
-            "z1": z - self.calculateRadius(),
-            "z2": z + self.calculateRadius()}
-
-        whereCondition = ""
-        if len(enabledFlags) == 2 ** len(self.projectsDict.values()):  # all projects are enabled
-            whereCondition = "deleted_at IS NULL;"
+        if len(enabledFlags) == 2 ** len(self.projectsDict.values()) - 1:  # all projects are enabled, no need to specify any
+            flags = list()
         else:
-            whereCondition = "deleted_at IS NULL AND action_todo = ANY(%(flags)s);"
-            queryDictionary.setdefault("flags", list(enabledFlags))
+            flags = list(enabledFlags)
 
-        sql = " ".join([
-            "SELECT id, name, x, y, z, uncertainty, action_todo FROM systems WHERE",
-            "systems.x BETWEEN %(x1)s AND %(x2)s AND",
-            "systems.y BETWEEN %(y1)s AND %(y2)s AND",
-            "systems.z BETWEEN %(z1)s AND %(z2)s AND",
-            whereCondition
-        ])
-        systems = list()
-        # make sure that the between statements are BETWEEN lower limit AND higher limit
-        self.remoteDbCursor.execute(sql, queryDictionary)
-        for _row in self.remoteDbCursor.fetchall():
-            id64, name, x2, y2, z2, uncertainty, action = _row
-            distance = EliteSystem.calculateDistance(x, x2, y, y2, z, z2)
+        params = {"x": cmdr_x, "y": cmdr_y, "z": cmdr_z,
+                  "radius": self.calculateRadius(),
+                  "flags": flags}
+        rseUrl = "https://cyberlord.de/rse/systems.py?" + urlencode(params)
+        try:
+            url = urlopen(rseUrl, timeout=10)
+            if url.getcode() != 200:
+                # some error occurred
+                self.printDebug("Error fetching nearby systems. HTTP code: {code}.".format(code=url.getcode()))
+
+                return False
+            response = url.read()
+        except Exception as e:
+            # some error occurred
+            self.printDebug("Error fetching nearby systems. Error: {e}".format(e=str(e)))
+
+            return False
+
+        systems = list()  # type: List[EliteSystem]
+        scannedSystems = self.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES)
+
+        rseJson = json.loads(response)
+        for _row in rseJson:
+            rse_id64 = _row["id"]
+            rse_name = _row["name"]
+            rse_x = _row["x"]
+            rse_y = _row["y"]
+            rse_z = _row["z"]
+            uncertainty = _row["uncertainty"]
+            action = _row["action_todo"]
+
+            distance = EliteSystem.calculateDistance(cmdr_x, rse_x, cmdr_y, rse_y, cmdr_z, rse_z)
             if distance <= self.calculateRadius():
-                eliteSystem = EliteSystem(id64, name, x, y, z, uncertainty)
+                eliteSystem = EliteSystem(rse_id64, rse_name, rse_x, rse_y, rse_z, uncertainty)
                 eliteSystem.addToProjects([rseProject for rseProject in self.projectsDict.values() if action & rseProject.projectId])
                 eliteSystem.distance = distance
-                systems.append(eliteSystem)
+
+                # special case: project 4 (scan bodies)
+                if RseData.PROJECT_SCAN in eliteSystem.getProjectIds() and eliteSystem.id64 in scannedSystems:
+                    eliteSystem.removeFromProject(RseData.PROJECT_SCAN)
+
+                if len(eliteSystem.getProjectIds()) > 0:
+                    systems.append(eliteSystem)
+
+        if len(systems) == 0:
+            return False  # nothing new
 
         # filter out systems that have been completed or are ignored
-        systems = filter(lambda system: system.id64 not in self.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS), systems)
+        systems = list(filter(lambda system: system.id64 not in self.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS), systems))
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
-
-        if handleDbConnection:
-            self.closeRemoteDatabase()
+        self.printDebug("Found {systems} systems within {radius} ly.".format(systems=len(systems), radius=self.calculateRadius()))
 
         return True
 
@@ -354,11 +387,14 @@ class RseData(object):
             self.closeLocalDatabase()
 
         # initialize dictionaries
-        self.openRemoteDatabase()
-        if self.isRemoteDatabaseAccessible():
-            if len(self.projectsDict) == 0:
-                self.remoteDbCursor.execute("SELECT id, action_text, project_name, explanation, enabled FROM projects")
-                for _row in self.remoteDbCursor.fetchall():
-                    rseProject = RseProject(*_row)
-                    self.projectsDict[rseProject.projectId] = rseProject
-            self.closeRemoteDatabase()
+        # self.openRemoteDatabase()
+        if len(self.projectsDict) == 0:
+            url = urlopen("https://cyberlord.de/rse/projects.py", timeout=10)
+            response = url.read()
+            for _row in json.loads(response):
+                rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
+                self.projectsDict[rseProject.projectId] = rseProject
+    
+    def printDebug(self, msg):
+        if self.debug:
+            print("{plugin_name} (Debug): {msg}".format(plugin_name=RseData.PLUGIN_NAME, msg=msg))

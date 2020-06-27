@@ -18,28 +18,33 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
 import json
-import urllib2
 import time
-import sys
-
+import math
 from RseData import RseData
 
-if __debug__:
-    from traceback import print_exc
+try:
+    # Python 2
+    from urllib2 import quote
+    from urllib2 import urlopen
+except ModuleNotFoundError:
+    # Python 3
+    from urllib.parse import quote
+    from urllib.request import urlopen, Request
 
 
 class BackgroundTask(object):
+    """
+    Template for new tasks.
+    """
     def __init__(self, rseData):
         self.rseData = rseData
 
     def execute(self):
-        if __debug__:
-            print("{} didn't implement execute".format(self.__class__.__name__))
+        self.rseData.printDebug("{} Didn't implement execute.".format(self.__class__.__name__))
         pass  # to be implemented by subclass
 
     def fireEvent(self):
-        if __debug__:
-            print("{} didn't implement fireEvent".format(self.__class__.__name__))
+        self.rseData.printDebug("{} Didn't implement fireEvent.".format(self.__class__.__name__))
         pass  # to be implemented by subclass
 
 
@@ -57,16 +62,15 @@ class BackgroundTaskClosestSystem(BackgroundTask):
             self.rseData.frame.event_generate(RseData.EVENT_RSE_BACKGROUNDWORKER, when="tail")  # calls updateUI in main thread
 
     def getSystemFromID(self, id64):
-        system = filter(lambda x: x.id64 == id64, self.rseData.systemList)[:1]  # there is only one possible match for ID64, avoid exception being thrown
+        system = list(filter(lambda x: x.id64 == id64, self.rseData.systemList))  # there is only one possible match for ID64, avoid exception being thrown
         if len(system) > 0:
             return system[0]
         else:
             return None
 
     def removeSystems(self):
-        removeMe = filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList)
-        if __debug__: print(
-            "adding {count} systems to removal filter: {systems}".format(count=len(removeMe), systems=[x.name for x in removeMe]))
+        removeMe = list(filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList))
+        self.rseData.printDebug("Adding {count} systems to removal filter: {systems}.".format(count=len(removeMe), systems=[x.name for x in removeMe]))
         self.rseData.systemList = [x for x in self.rseData.systemList if x not in removeMe]
         self.rseData.openLocalDatabase()
         for system in removeMe:
@@ -91,7 +95,7 @@ class NavbeaconTask(BackgroundTaskClosestSystem):
 class JumpedSystemTask(BackgroundTaskClosestSystem):
     def __init__(self, rseData, eliteSystem):
         super(JumpedSystemTask, self).__init__(rseData)
-        self.coordinates = (eliteSystem.x, eliteSystem.y, eliteSystem.z)
+        self.coordinates = eliteSystem.getCoordinates()
         self.systemAddress = eliteSystem.id64
 
     def queryEDSM(self, systems):
@@ -103,14 +107,15 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
         addToCache = list()
         for system in systems:
             if system.uncertainty > 0 and system.id64 not in cache:
-                params.append("systemName[]={name}".format(name=urllib2.quote(system.name)))
+                params.append("systemName[]={name}".format(name=quote(system.name)))
                 addToCache.append(system.id64)
         edsmUrl += "&".join(params)
 
-        if __debug__: print("querying EDSM for {} systems".format(len(params)))
+        self.rseData.printDebug("Querying EDSM for {} systems.".format(len(params)))
+
         if len(params) > 0:
             try:
-                url = urllib2.urlopen(edsmUrl, timeout=10)
+                url = urlopen(edsmUrl, timeout=10)
                 response = url.read()
                 edsmJson = json.loads(response)
                 for entry in edsmJson:
@@ -125,47 +130,47 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                 return names
             except:
                 # ignore. the EDSM call is not required
-                if __debug__: print_exc()
+                self.rseData.printDebug("EDSM query call failed.")
         return set()
 
     def execute(self):
         system = self.getSystemFromID(self.systemAddress)
 
         if system:  # arrived in system without coordinates
-            if __debug__: print("arrived in {}".format(system.name))
+            self.rseData.printDebug("Arrived in {}.".format(system.name))
             system.removeFromProject(RseData.PROJECT_RSE)
             self.removeSystems()
 
-        if self.rseData.generateListsFromRemoteDatabase(*self.coordinates):
-            lowerLimit = 0
-            upperLimit = RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
-
-            tries = 0
-            while tries < 3 and len(self.rseData.systemList) > 0:  # no do-while loops...
-                closestSystems = self.rseData.systemList[lowerLimit:upperLimit]
-                edsmResults = self.queryEDSM(closestSystems)
-                if len(edsmResults) > 0:
-                    # remove systems with coordinates
-                    systemsWithCoordinates = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
-                    for system in systemsWithCoordinates:
-                        system.removeFromProject(RseData.PROJECT_RSE)
-                    self.removeSystems()
-                    closestSystems = filter(lambda s: s.name.lower() in edsmResults, closestSystems)
-                if len(closestSystems) > 0:
-                    # there are still systems in the results -> stop here
-                    break
-                else:
-                    tries += 1
-                    lowerLimit += RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
-                    upperLimit += RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
-
-        else:
+        if not self.rseData.generateListsFromRemoteDatabase(*self.coordinates):
             # distances need to be recalculated because we couldn't get a new list from the database
+            self.rseData.printDebug("Using cached system list for distances. Radius was set to {}.".format(self.rseData.calculateRadius()))
             for system in self.rseData.systemList:
                 system.updateDistanceToCurrentCommanderPosition(*self.coordinates)
             self.rseData.systemList.sort(key=lambda l: l.distance)
-
         self.rseData.adjustRadiusExponent(len(self.rseData.systemList))
+
+        lowerLimit = 0
+        upperLimit = RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+
+        tries = 0
+        while tries < 3 and len(self.rseData.systemList) > 0:  # no do-while loops...
+            closestSystems = self.rseData.systemList[lowerLimit:upperLimit]
+            edsmResults = self.queryEDSM(closestSystems)
+            if len(edsmResults) > 0:
+                # remove systems with coordinates
+                systemsWithCoordinates = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
+                for system in systemsWithCoordinates:
+                    system.removeFromProject(RseData.PROJECT_RSE)
+                self.removeSystems()
+                closestSystems = list(filter(lambda s: s.name.lower() in edsmResults, closestSystems))
+            if len(closestSystems) > 0:
+                # there are still systems in the results -> stop here
+                break
+            else:
+                tries += 1
+                lowerLimit += RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+                upperLimit += RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+
         self.fireEvent()
 
 
@@ -192,14 +197,19 @@ class VersionCheckTask(BackgroundTask):
 
     def execute(self):
         try:
-            request = urllib2.Request(RseData.VERSION_CHECK_URL)
-            response = urllib2.urlopen(request)
-            newVersionInfo = json.loads(response.read())
-            if RseData.VERSION != newVersionInfo["version"]:
-                self.rseData.lastEventInfo[RseData.BG_UPDATE_JSON] = newVersionInfo
-                self.rseData.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
-        except ValueError:
-            pass  # ignore
+            response = urlopen(RseData.VERSION_CHECK_URL, timeout=10)
+            releasesInfo = json.loads(response.read())
+            runningVersion = tuple(RseData.VERSION.split("."))
+            for releaseInfo in releasesInfo:
+                if not releaseInfo["draft"] and not releaseInfo["prerelease"]:
+                    newVersionText = releaseInfo["tag_name"].split("_")[1]
+                    newVersionInfo = tuple(newVersionText.split("."))
+                    if runningVersion < newVersionInfo:
+                        self.rseData.lastEventInfo[RseData.BG_UPDATE_JSON] = {"version": newVersionText, "url": releaseInfo["html_url"]}
+                        self.rseData.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
+                        break
+        except Exception as e:
+            print("{plugin_name}: Failed to retrieve information about available updates. Error: {e}".format(plugin_name=RseData.PLUGIN_NAME, e=e))
 
 
 class TimedTask(BackgroundTask):
@@ -220,24 +230,32 @@ class DeleteSystemsFromCacheTask(BackgroundTask):
         self.rseData.removeAllSystemsFromCache(self.cacheType)
 
 
-class EdsmBodyCheck(BackgroundTask):
+class EdsmBodyCheck(BackgroundTaskClosestSystem):
     def __init__(self, rseData):
         super(EdsmBodyCheck, self).__init__(rseData)
 
-    def fireEvent(self, message=None):
+    def fireEventEdsmBodyCheck(self, message=None):
         self.rseData.lastEventInfo[RseData.BG_EDSM_BODY] = message or "?"
         if self.rseData.frame:
             self.rseData.frame.event_generate(RseData.EVENT_RSE_EDSM_BODY_COUNT, when="tail")  # calls updateUI in main thread
 
 
 class FSSAllBodiesFoundTask(EdsmBodyCheck):
-    def __init__(self, rseData, id64):
+    def __init__(self, rseData, id64, edsmBodyCheck):
         super(FSSAllBodiesFoundTask, self).__init__(rseData)
         self.id64 = id64
+        self.edsmBodyCheck = edsmBodyCheck
 
     def execute(self):
-        self.rseData.addSystemToCache(self.id64, sys.maxint, RseData.CACHE_FULLY_SCANNED_BODIES)
-        self.fireEvent("System complete")
+        system = self.getSystemFromID(self.id64)
+        if system:
+            system.removeFromProject(RseData.PROJECT_SCAN)
+            self.removeSystems()
+            self.fireEvent()
+
+        if self.edsmBodyCheck:
+            self.rseData.addSystemToCache(self.id64, 2 ** 31 - 1, RseData.CACHE_FULLY_SCANNED_BODIES)  # overwrites entry in DB if it was set before
+            self.fireEventEdsmBodyCheck("System complete")
 
 
 class FSSDiscoveryScanTask(EdsmBodyCheck):
@@ -248,28 +266,27 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
         self.progress = progress
 
     def queryEdsm(self):
-        edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=urllib2.quote(self.systemName))
-        if __debug__:
-            print("querying EDSM for bodies of system {}".format(self.systemName))
+        edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=quote(self.systemName))
+        self.rseData.printDebug("Querying EDSM for bodies of system {}.".format(self.systemName))
         try:
-            url = urllib2.urlopen(edsmUrl, timeout=10)
+            url = urlopen(edsmUrl, timeout=10)
             response = url.read()
             edsmJson = json.loads(response)
             return edsmJson["id64"], len(edsmJson["bodies"])
         except:
-            if __debug__: print_exc()
+            self.rseData.printDebug("EDSM body count call failed.")
         return None, None  # error/timeout occurred
 
     def execute(self):
         if self.progress == 1.0:
-            self.fireEvent("System complete")
+            self.fireEventEdsmBodyCheck("System complete")
             # no need to call EDSM's API here because all bodies are found and will be submitted to EDSM
             return
 
         id64, knownToEdsm = self.queryEdsm()
-        if id64 and knownToEdsm:
+        if id64:
             if self.bodyCount == knownToEdsm:
-                self.rseData.addSystemToCache(id64, sys.maxint, RseData.CACHE_FULLY_SCANNED_BODIES)
-            self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM=knownToEdsm))
+                self.rseData.addSystemToCache(id64, int(math.pow(2, 31)) - 1, RseData.CACHE_FULLY_SCANNED_BODIES)
+            self.fireEventEdsmBodyCheck("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM=knownToEdsm))
         else:
-            self.fireEvent("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM="?"))
+            self.fireEventEdsmBodyCheck("{onEDSM}/{inSystem}".format(inSystem=self.bodyCount, onEDSM="?"))

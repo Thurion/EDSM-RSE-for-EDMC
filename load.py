@@ -18,25 +18,35 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
 import sys
-import urllib2
 import time
-from Queue import Queue
 
-import Tkinter as tk
-import tkMessageBox
-import ttk
-from ttkHyperlinkLabel import HyperlinkLabel
+try:
+    # Python 2
+    from Queue import Queue
+    from urllib2 import quote
+    from urllib2 import urlopen
+    import Tkinter as tk
+    import ttk
+    import tkMessageBox as tkMessageBox
+except ModuleNotFoundError:
+    # Python 3
+    from queue import Queue
+    from urllib.parse import quote
+    from urllib.request import urlopen
+    from typing import Dict
+    import tkinter as tk
+    import tkinter.ttk as ttk
+    import tkinter.messagebox as tkMessageBox
+
 import myNotebook as nb
-
-from l10n import Locale
+from ttkHyperlinkLabel import HyperlinkLabel
 from config import config
+from l10n import Locale
 
 from RseData import RseData, EliteSystem
 from Backgroundworker import BackgroundWorker
 import BackgroundTask as BackgroundTask
 
-if __debug__:
-    from traceback import print_exc
 
 this = sys.modules[__name__]  # For holding module globals
 
@@ -46,25 +56,26 @@ this.CONFIG_MAIN = "EDSM-RSE"
 this.rseData = None  # holding module wide variables
 this.systemCreated = False  # initialize with false in case someone uses an older EDMC version that does not call edsm_notify_system()
 this.enabled = False  # plugin configured correctly and therefore enabled
-this.currentSystem = None  # (EliteSystem) current system
+this.currentSystem = None  # type: EliteSystem # current system
 
-this.worker = None  # background worker
-this.queue = None  # queue used by the background worker
+this.worker = None  # type: BackgroundWorker
+this.queue = None  # type: Queue # queue used by the background worker
 
 # ui elements in options
-this.clipboard = None  # (tk.BooleanVar) copy system name to clipboard
-this.overwrite = None  # (tk.BooleanVar) overwrite disabled state (EDSM/EDDN disabled)
-this.edsmBodyCheck = None  # (tk.BooleanVar) in settings; compare total number of bodies to the number known to EDSM
+this.debug = None # Type: tk.BooleanVar # toggle debug messages to eddb log
+this.clipboard = None  # type: tk.BooleanVar # copy system name to clipboard
+this.overwrite = None  # type: tk.BooleanVar # overwrite disabled state (EDSM/EDDN disabled)
+this.edsmBodyCheck = None  # type: tk.BooleanVar # in settings; compare total number of bodies to the number known to EDSM
 this.systemScanned = False  # variable to prevent spamming the EDSM API
-this.ignoredProjectsCheckboxes = dict()  # dict of tk.BooleanVar. key = project ID, value = tk.BooleanVar
+this.ignoredProjectsCheckboxes = dict()  # type: Dict[int, tk.BooleanVar]
 
 # ui elements in main window
-this.errorLabel = None  # (tk.Label) show if plugin can't work (EDSM/EDDN disabled)
-this.distanceValue = None  # (tk.Label) distance to system
-this.actionText = None  # (tk.Label) task to do
-this.edsmBodyFrame = None  # (tk.Frame) frame containing all UI elements for EDSM body count
-this.edsmBodyCountText = None  # (tk.Label) text of information about bodies known to EDSM
-this.unconfirmedSystem = None  # (RseHyperlinkLabel) display name of system that needs checking
+this.errorLabel = None  # type: tk.Label # show if plugin can't work (EDSM/EDDN disabled)
+this.distanceValue = None  # type: tk.Label # distance to system
+this.actionText = None  # type: tk.Label # task to do
+this.edsmBodyFrame = None  # type: tk.Frame # frame containing all UI elements for EDSM body count
+this.edsmBodyCountText = None  # type: tk.Label # text of information about bodies known to EDSM
+this.unconfirmedSystem = None  # type: RseHyperlinkLabel # display name of system that needs checking
 
 
 class RseHyperlinkLabel(HyperlinkLabel):
@@ -82,7 +93,7 @@ class RseHyperlinkLabel(HyperlinkLabel):
         this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], time.time() + 24 * 3600))
 
     def ignoreIndefinitely(self):
-        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], sys.maxint))
+        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], 2 ** 31 - 1))
 
 
 def checkTransmissionOptions():
@@ -98,7 +109,9 @@ def plugin_start(plugin_dir):
     this.clipboard = tk.BooleanVar(value=((settings >> 5) & 0x01))
     this.overwrite = tk.BooleanVar(value=((settings >> 6) & 0x01))
     this.edsmBodyCheck = tk.BooleanVar(value=not ((settings >> 7) & 0x01))  # invert to be on by default
-
+    this.debug = tk.BooleanVar(value=((settings >> 8) & 0x01))
+    this.rseData.debug = this.debug.get()
+    
     this.enabled = checkTransmissionOptions()
 
     this.queue = Queue()
@@ -108,7 +121,12 @@ def plugin_start(plugin_dir):
     this.worker.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
     this.worker.start()
 
-    return "EDSM-RSE"
+    this.rseData.printDebug("Debug messages are enabled.")
+    return RseData.PLUGIN_NAME
+
+
+def plugin_start3(plugin_dir):
+    plugin_start(plugin_dir)
 
 
 def updateUiUnconfirmedSystem(event=None):
@@ -118,7 +136,7 @@ def updateUiUnconfirmedSystem(event=None):
         this.errorLabel.grid_remove()
         this.unconfirmedSystem.grid(row=0, column=1, sticky=tk.W)
         this.unconfirmedSystem["text"] = eliteSystem.name
-        this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(urllib2.quote(eliteSystem.name))
+        this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
         distanceText = u"{distance} Ly".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2))
         if eliteSystem.uncertainty > 0:
@@ -165,7 +183,7 @@ def clearScannedSystemsCacheCallback(cacheType, name):
         this.queue.put(BackgroundTask.DeleteSystemsFromCacheTask(this.rseData, cacheType))
 
 
-def plugin_prefs(parent):
+def plugin_prefs(parent, cmdr, is_beta):
     PADX = 5
 
     frame = nb.Frame(parent)
@@ -207,6 +225,8 @@ def plugin_prefs(parent):
     # links
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(RseData.VERSION)).grid(padx=PADX, sticky=tk.W)
+    nb.Checkbutton(frame, variable=this.debug,
+                   text="Verbose Logging").grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"),
                    url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"),
@@ -214,14 +234,15 @@ def plugin_prefs(parent):
     return frame
 
 
-def prefs_changed():
+def prefs_changed(cmdr, is_beta):
     # bits are as follows:
     # 0-3 radius # not used anymore
     # 4-5 interval, not used anymore
     # 6: copy to clipboard
     # 7: overwrite enabled status
     # 8: EDSM body check, value inverted
-    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | ((not this.edsmBodyCheck.get()) << 7)
+    # 9: Debug
+    settings = (this.clipboard.get() << 5) | (this.overwrite.get() << 6) | ((not this.edsmBodyCheck.get()) << 7) | (this.debug.get() << 8)
     config.set(this.CONFIG_MAIN, settings)
     this.enabled = checkTransmissionOptions()
     this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
@@ -240,6 +261,8 @@ def prefs_changed():
             this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, this.currentSystem))
 
     config.set(this.CONFIG_IGNORED_PROJECTS, this.rseData.ignoredProjectsFlags)
+    
+    this.rseData.debug = this.debug.get()
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()
@@ -267,13 +290,13 @@ def plugin_app(parent):
     this.rseData.setFrame(this.frame)
 
     this.frame.columnconfigure(1, weight=1)
-    tk.Label(this.frame, text="Unconfirmed:").grid(row=0, column=0, sticky=tk.W)
+    tk.Label(this.frame, text="Target:").grid(row=0, column=0, sticky=tk.W)
     this.unconfirmedSystem = RseHyperlinkLabel(this.frame, compound=tk.RIGHT, popup_copy=True)
     this.errorLabel = tk.Label(this.frame)
     tk.Label(this.frame, text="Distance:").grid(row=1, column=0, sticky=tk.W)
     this.distanceValue = tk.Label(this.frame)
     this.distanceValue.grid(row=1, column=1, sticky=tk.W)
-    tk.Label(this.frame, text="Action:").grid(row=2, column=0, sticky=tk.W)
+    tk.Label(this.frame, text="Todo:").grid(row=2, column=0, sticky=tk.W)
     this.actionText = tk.Label(this.frame)
     this.actionText.grid(row=2, column=1, sticky=tk.W)
 
@@ -300,7 +323,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if not this.enabled and not this.overwrite.get() or is_beta:
         return  # nothing to do here
     
-    if entry["event"] == "FSDJump" or entry["event"] == "Location":
+    if entry["event"] == "FSDJump" or entry["event"] == "Location" or entry["event"] == "CarrierJump":
         if entry["SystemAddress"] in this.rseData.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES):
             this.edsmBodyCountText["text"] = "System complete"
             this.systemScanned = True
@@ -326,9 +349,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                 this.queue.put(BackgroundTask.FSSDiscoveryScanTask(this.rseData, system, entry["BodyCount"], entry["Progress"]))
         this.systemScanned = True
 
-    if entry["event"] == "FSSAllBodiesFound" and this.edsmBodyCheck.get():
+    if entry["event"] == "FSSAllBodiesFound":
         this.systemScanned = True
-        this.queue.put(BackgroundTask.FSSAllBodiesFoundTask(this.rseData, entry["SystemAddress"]))
+        this.queue.put(BackgroundTask.FSSAllBodiesFoundTask(this.rseData, entry["SystemAddress"], this.edsmBodyCheck.get()))
 
 
 def edsm_notify_system(reply):

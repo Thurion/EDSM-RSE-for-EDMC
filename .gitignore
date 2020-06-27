@@ -399,3 +399,5 @@ paket-files/
 *.pyproj
 *.sln
 *.sqlite
+!decimal/_decimal.pyd
+!psycopg2/*.pyd
