@@ -19,6 +19,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 from threading import Thread, Timer
 from BackgroundTask import TimedTask
+import traceback
+
+from RseData import RseData
 
 
 class BackgroundWorker(Thread):
@@ -46,7 +49,11 @@ class BackgroundWorker(Thread):
             if not task:
                 break
             else:
-                task.execute()
+                try:
+                    task.execute()
+                except Exception as e:
+                    RseData.printError("Exception occurred in background task {bg}: {e}".format(bg=task.__class__.__name__, e=e))
+                    traceback.print_exc()
 
             self.queue.task_done()
 

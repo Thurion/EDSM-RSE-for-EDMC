@@ -209,7 +209,7 @@ class VersionCheckTask(BackgroundTask):
                         self.rseData.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
                         break
         except Exception as e:
-            print("{plugin_name}: Failed to retrieve information about available updates. Error: {e}".format(plugin_name=RseData.PLUGIN_NAME, e=e))
+            RseData.printError("Failed to retrieve information about available updates. Error: {e}".format(e=e))
 
 
 class TimedTask(BackgroundTask):

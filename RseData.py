@@ -17,7 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 import plug
-import sys
 import os
 import time
 import math
@@ -194,8 +193,7 @@ class RseData(object):
             self.localDbCursor = self.localDbConnection.cursor()
         except Exception as e:
             error_msg = "{plugin_name}: Local cache database could not be opened".format(plugin_name=RseData.PLUGIN_NAME)
-            print(error_msg)
-            plug.show_error(error_msg)
+            RseData.printError(error_msg, showError=True)
 
     def closeLocalDatabase(self):
         if not self.isLocalDatabaseAccessible():
@@ -384,7 +382,6 @@ class RseData(object):
             self.closeLocalDatabase()
 
         # initialize dictionaries
-        # self.openRemoteDatabase()
         if len(self.projectsDict) == 0:
             url = urlopen("https://cyberlord.de/rse/projects.py", timeout=10)
             response = url.read()
@@ -394,4 +391,17 @@ class RseData(object):
     
     def printDebug(self, msg):
         if self.debug:
-            print("{plugin_name} (Debug): {msg}".format(plugin_name=RseData.PLUGIN_NAME, msg=msg))
+            print("{plugin_name}-{version} (Debug): {msg}".format(plugin_name=RseData.PLUGIN_NAME, version=RseData.VERSION, msg=msg))
+
+    @staticmethod
+    def printError(msg, showError=False):
+        """
+        Prints/logs an error and can show it on the main window if necessary.
+        :param msg: The error message
+        :param showError: Whether to show it on the EDMC main window or not
+        :return:
+        """
+        errorMessage = "{plugin_name}-{version}: {msg}".format(plugin_name=RseData.PLUGIN_NAME, version=RseData.VERSION, msg=msg)
+        print(errorMessage)
+        if showError:
+            plug.show_error(errorMessage)
