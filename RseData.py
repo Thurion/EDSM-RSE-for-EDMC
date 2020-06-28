@@ -219,11 +219,8 @@ class RseData(object):
             self.printDebug("Found too few systems, increasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
 
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
-            if len(self.systemList) >= RseData.RADIUS_ADJUSTMENT_DECREASE:
-                distance = self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE].distance
-                self.radiusExponent = math.log((distance - 39) / 11, 2)
-            else:
-                self.radiusExponent = int(self.radiusExponent) - 1
+            distance = self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE - 1].distance
+            self.radiusExponent = math.log((distance - 39) / 11, 2)
             if self.radiusExponent < 0:
                 self.radiusExponent = 0
             if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
