@@ -263,6 +263,8 @@ def prefs_changed(cmdr, is_beta):
     config.set(this.CONFIG_IGNORED_PROJECTS, this.rseData.ignoredProjectsFlags)
     
     this.rseData.debug = this.debug.get()
+    if this.rseData.debug == True:
+        rseData.printDebug("Python Version: {0}.".format(sys.version)
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()
