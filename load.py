@@ -264,7 +264,7 @@ def prefs_changed(cmdr, is_beta):
     
     this.rseData.debug = this.debug.get()
     if this.rseData.debug == True:
-        rseData.printDebug("Python Version: {0}.".format(sys.version)
+        rseData.printDebug("Python Version: {0}.".format(sys.version))
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()
