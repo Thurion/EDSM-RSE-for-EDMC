@@ -323,7 +323,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
     if not this.enabled and not this.overwrite.get() or is_beta:
         return  # nothing to do here
     
-    if entry["event"] == "FSDJump" or entry["event"] == "Location" or entry["event"] == "CarrierJump":
+    if entry["event"] in ["FSDJump", "Location", "CarrierJump", "StartUp"]:
         if entry["SystemAddress"] in this.rseData.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES):
             this.edsmBodyCountText["text"] = "System complete"
             this.systemScanned = True
