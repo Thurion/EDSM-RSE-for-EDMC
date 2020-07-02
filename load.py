@@ -53,10 +53,11 @@ this = sys.modules[__name__]  # For holding module globals
 this.CONFIG_IGNORED_PROJECTS = "EDSM-RSE_ignoredProjects"
 this.CONFIG_MAIN = "EDSM-RSE"
 
-this.rseData = None  # holding module wide variables
+this.rseData = None  # type: RseData
 this.systemCreated = False  # initialize with false in case someone uses an older EDMC version that does not call edsm_notify_system()
 this.enabled = False  # plugin configured correctly and therefore enabled
 this.currentSystem = None  # type: EliteSystem # current system
+this.commander = None  # name of current commander
 
 this.worker = None  # type: BackgroundWorker
 this.queue = None  # type: Queue # queue used by the background worker
@@ -322,7 +323,14 @@ def plugin_app(parent):
 def journal_entry(cmdr, is_beta, system, station, entry, state):
     if not this.enabled and not this.overwrite.get() or is_beta:
         return  # nothing to do here
-    
+
+    if this.commander != cmdr:
+        # user switched commanders, reset the list of systems
+        this.rseData.printDebug("New commander detected: {cmdr}; resetting radius and clearing nearby systems.".format(cmdr=cmdr))
+        this.commander = cmdr
+        this.rseData.systemList = list()
+        this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
+
     if entry["event"] in ["FSDJump", "Location", "CarrierJump", "StartUp"]:
         if entry["SystemAddress"] in this.rseData.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES):
             this.edsmBodyCountText["text"] = "System complete"
