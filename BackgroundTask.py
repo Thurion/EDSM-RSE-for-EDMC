@@ -103,12 +103,16 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
         edsmUrl = "https://www.edsm.net/api-v1/systems?onlyUnknownCoordinates=1&"
         params = list()
         names = set()
-        cache = self.rseData.getCachedSet(RseData.CACHE_EDSM_RSE_QUERY)
+        cache = self.rseData.getCachedSet(RseData.CACHE_EDSM_RSE_QUERY)  # type: set
+        cache = cache.union(self.rseData.getCachedSet(RseData.CACHE_IGNORED_SYSTEMS))
         addToCache = list()
         for system in systems:
-            if system.uncertainty > 0 and system.id64 not in cache:
-                params.append("systemName[]={name}".format(name=quote(system.name)))
-                addToCache.append(system.id64)
+            if system.uncertainty > 0:
+                if system.id64 not in cache:
+                    params.append("systemName[]={name}".format(name=quote(system.name)))
+                    addToCache.append(system.id64)
+                else:
+                    names.add(system.name.lower())  # name is in EDSM cache -> make sure the name is returned as if included in EDSM call
         edsmUrl += "&".join(params)
 
         self.rseData.printDebug("Querying EDSM for {} systems.".format(len(params)))
@@ -130,8 +134,13 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                 return names
             except:
                 # ignore. the EDSM call is not required
-                self.rseData.printDebug("EDSM query call failed.")
-        return set()
+                self.rseData.printDebug("EDSM call failed.")
+
+        # something went wrong. Return all systems as unknown
+        names = set()
+        for system in systems:
+            names.add(system.name.lower())
+        return names
 
     def execute(self):
         system = self.getSystemFromID(self.systemAddress)
@@ -149,27 +158,20 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
             self.rseData.systemList.sort(key=lambda l: l.distance)
         self.rseData.adjustRadiusExponent(len(self.rseData.systemList))
 
-        lowerLimit = 0
-        upperLimit = RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
-
         tries = 0
         while tries < 3 and len(self.rseData.systemList) > 0:  # no do-while loops...
-            closestSystems = self.rseData.systemList[lowerLimit:upperLimit]
+            closestSystems = self.rseData.systemList[0:RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY]
             edsmResults = self.queryEDSM(closestSystems)
-            if len(edsmResults) > 0:
+            if len(edsmResults) < RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY:
                 # remove systems with coordinates
                 systemsWithCoordinates = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
                 for system in systemsWithCoordinates:
                     system.removeFromProject(RseData.PROJECT_RSE)
                 self.removeSystems()
-                closestSystems = list(filter(lambda s: s.name.lower() in edsmResults, closestSystems))
-            if len(closestSystems) > 0:
+            if len(edsmResults) > 0:
                 # there are still systems in the results -> stop here
                 break
-            else:
-                tries += 1
-                lowerLimit += RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
-                upperLimit += RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY
+            tries += 1
 
         self.fireEvent()
 
