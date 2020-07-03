@@ -123,6 +123,7 @@ def plugin_start(plugin_dir):
     this.worker.start()
 
     this.rseData.printDebug("Debug messages are enabled.")
+    this.rseData.printDebug("Python Version: {0}.".format(sys.version))
     return RseData.PLUGIN_NAME
 
 
@@ -262,10 +263,7 @@ def prefs_changed(cmdr, is_beta):
             this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, this.currentSystem))
 
     config.set(this.CONFIG_IGNORED_PROJECTS, this.rseData.ignoredProjectsFlags)
-    
     this.rseData.debug = this.debug.get()
-    if this.rseData.debug:
-        this.rseData.printDebug("Python Version: {0}.".format(sys.version))
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()
