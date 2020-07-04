@@ -218,8 +218,9 @@ class RseData(object):
 
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
             distance = self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE - 1].distance
-            self.radiusExponent = math.log((distance - 39) / 11, 2)
-            if self.radiusExponent < 0:
+            if distance > 50:
+                self.radiusExponent = math.log((distance - 39) / 11, 2)
+            else:
                 self.radiusExponent = 0
             if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
                 self.radiusExponent = 10
