@@ -124,7 +124,7 @@ class RseData(object):
     PLUGIN_NAME = "EDSM-RSE"
 
     # settings for search radius
-    DEFAULT_RADIUS_EXPONENT = 2  # key for radius, see calculateRadius
+    DEFAULT_RADIUS_EXPONENT = 5  # key for radius, see calculateRadius
     MAX_RADIUS = 10
     RADIUS_ADJUSTMENT_INCREASE = 15  # increase radius if at most this amount of systems were found
     RADIUS_ADJUSTMENT_DECREASE = 100  # decrease the radius if at least this amount of systems were found
