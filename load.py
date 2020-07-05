@@ -344,6 +344,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
 
     if entry["event"] == "Resurrect":
         # reset radius in case someone died in an area where there are not many available stars (meaning very large radius)
+        this.rseData.systemList = list()
         this.rseData.radius = RseData.DEFAULT_RADIUS_EXPONENT
 
     if entry["event"] == "NavBeaconScan":
