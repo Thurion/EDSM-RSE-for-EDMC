@@ -205,29 +205,43 @@ class RseData(object):
     def isLocalDatabaseAccessible(self):
         return hasattr(self, "localDbCursor") and self.localDbCursor
 
-    def adjustRadiusExponent(self, numberOfSystems):
+    def adjustRadiusExponent(self):
         """
         Adjust the radius to ensure that not too many systems are found (decrease network traffic and database load)
-        :param numberOfSystems:  number of systems found the last time
         """
+
+        def inverseCalculateRadius(d):
+            if d > 50:
+                return math.log((d - 39) / 11, 2)
+            else:
+                return 0
+
+        numberOfSystems = len(self.systemList)
+
+        # not enough systems in range
         if numberOfSystems <= RseData.RADIUS_ADJUSTMENT_INCREASE:
             self.radiusExponent = int(self.radiusExponent) + 1
             if self.radiusExponent > RseData.MAX_RADIUS:
                 self.radiusExponent = 10
             self.printDebug("Found too few systems, increasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
 
+        # too many systems in range
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
-            distance = self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE - 1].distance
-            if distance > 50:
-                self.radiusExponent = math.log((distance - 39) / 11, 2)
-            else:
-                self.radiusExponent = 0
+            self.radiusExponent = inverseCalculateRadius(self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE - 1].distance)
             if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
                 self.radiusExponent = 10
             self.printDebug("Found too many systems, decreasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
 
-    def calculateRadius(self):
-        return 39 + 11 * (2 ** self.radiusExponent)
+        # number of systems within limits but distance exceeds set radius when using cached list -> increase radius
+        elif numberOfSystems > 0 and self.calculateRadius() < self.systemList[0].distance:
+            self.radiusExponent = inverseCalculateRadius(self.systemList[0].distance)
+            if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems
+                self.radiusExponent = 10
+
+    def calculateRadius(self, exponent=0):
+        if not exponent:
+            exponent = self.radiusExponent
+        return 39 + 11 * (2 ** exponent)
 
     def generateIgnoredActionsList(self):
         """

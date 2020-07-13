@@ -156,7 +156,7 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
             for system in self.rseData.systemList:
                 system.updateDistanceToCurrentCommanderPosition(*self.coordinates)
             self.rseData.systemList.sort(key=lambda l: l.distance)
-        self.rseData.adjustRadiusExponent(len(self.rseData.systemList))
+        self.rseData.adjustRadiusExponent()
 
         tries = 0
         while tries < 3 and len(self.rseData.systemList) > 0:  # no do-while loops...
