@@ -192,8 +192,7 @@ class RseData(object):
             self.localDbConnection = sqlite3.connect(os.path.join(self.pluginDir, "cache.sqlite"))
             self.localDbCursor = self.localDbConnection.cursor()
         except Exception as e:
-            error_msg = "{plugin_name}: Local cache database could not be opened".format(plugin_name=RseData.PLUGIN_NAME)
-            RseData.printError(error_msg, showError=True)
+            RseData.printError("Local cache database could not be opened", showError=True)
 
     def closeLocalDatabase(self):
         if not self.isLocalDatabaseAccessible():
@@ -262,6 +261,27 @@ class RseData(object):
                 enabledFlags.add(flag)
         return enabledFlags
 
+    def _queryRseAPI(self, rseUrl):
+        """
+        Internal method which only calls the API and returns a JSON object or None.
+        :param rseUrl:
+        :return: JSON or None
+        """
+        try:
+            url = urlopen(rseUrl, timeout=10)
+            if url.getcode() != 200:
+                # some error occurred
+                self.printDebug("Error calling RSE API. HTTP code: {code}.".format(code=url.getcode()))
+                self.printDebug("Tried to call {url}.".format(url=rseUrl))
+                return False
+            response = url.read()
+            return json.loads(response)
+        except Exception as e:
+            # some error occurred
+            self.printDebug("Error calling RSE API. Error: {e}.".format(e=str(e)))
+            self.printDebug("Tried to call {url}.".format(url=rseUrl))
+            return None
+
     def generateListsFromRemoteDatabase(self, cmdr_x, cmdr_y, cmdr_z):
         """
         Takes coordinates of commander and queries the server for systems that are in range. It takes the current set radius and sets any newly found
@@ -285,24 +305,14 @@ class RseData(object):
                   "radius": self.calculateRadius(),
                   "flags": flags}
         rseUrl = "https://cyberlord.de/rse/systems.py?" + urlencode(params)
-        try:
-            url = urlopen(rseUrl, timeout=10)
-            if url.getcode() != 200:
-                # some error occurred
-                self.printDebug("Error fetching nearby systems. HTTP code: {code}.".format(code=url.getcode()))
 
-                return False
-            response = url.read()
-        except Exception as e:
-            # some error occurred
-            self.printDebug("Error fetching nearby systems. Error: {e}".format(e=str(e)))
-
+        rseJson = self._queryRseAPI(rseUrl)  # use an extra method for unit testing purposes
+        if not rseJson:
             return False
 
         systems = list()  # type: List[EliteSystem]
         scannedSystems = self.getCachedSet(RseData.CACHE_FULLY_SCANNED_BODIES)
 
-        rseJson = json.loads(response)
         for _row in rseJson:
             rse_id64 = _row["id"]
             rse_name = _row["name"]
@@ -398,9 +408,10 @@ class RseData(object):
 
         # initialize dictionaries
         if len(self.projectsDict) == 0:
-            url = urlopen("https://cyberlord.de/rse/projects.py", timeout=10)
-            response = url.read()
-            for _row in json.loads(response):
+            response = self._queryRseAPI("https://cyberlord.de/rse/projects.py")
+            if not response:
+                RseData.printError("Could not get information about projects.", showError=True)
+            for _row in response:
                 rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
                 self.projectsDict[rseProject.projectId] = rseProject
     
