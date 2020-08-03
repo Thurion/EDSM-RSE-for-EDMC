@@ -22,6 +22,8 @@ import time
 import math
 import sqlite3
 import json
+import logging
+from config import appname
 
 try:
     # Python 2
@@ -164,7 +166,6 @@ class RseData(object):
         self.localDbCursor = None
         self.localDbConnection = None
         self.ignoredProjectsFlags = 0  # bit mask of ignored projects (AND of all their IDs)
-        self.debug = False
 
         """ 
         Dictionary of sets that contain the cached systems. 
@@ -192,7 +193,9 @@ class RseData(object):
             self.localDbConnection = sqlite3.connect(os.path.join(self.pluginDir, "cache.sqlite"))
             self.localDbCursor = self.localDbConnection.cursor()
         except Exception as e:
-            RseData.printError("Local cache database could not be opened", showError=True)
+            errorMessage = "Local cache database could not be opened"
+            logger.exception(errorMessage)
+            plug.show_error(plug.show_error("{plugin_name}-{version}: {msg}".format(plugin_name=RseData.PLUGIN_NAME, version=RseData.VERSION, msg=errorMessage)))
 
     def closeLocalDatabase(self):
         if not self.isLocalDatabaseAccessible():
@@ -222,14 +225,14 @@ class RseData(object):
             self.radiusExponent = int(self.radiusExponent) + 1
             if self.radiusExponent > RseData.MAX_RADIUS:
                 self.radiusExponent = 10
-            self.printDebug("Found too few systems, increasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
+            logger.debug("Found too few systems, increasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
 
         # too many systems in range
         elif numberOfSystems >= RseData.RADIUS_ADJUSTMENT_DECREASE:
             self.radiusExponent = inverseCalculateRadius(self.systemList[RseData.RADIUS_ADJUSTMENT_DECREASE - 1].distance)
             if self.radiusExponent > RseData.MAX_RADIUS:  # prevent large radius after calculating on cached systems after switching a commander
                 self.radiusExponent = 10
-            self.printDebug("Found too many systems, decreasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
+            logger.debug("Found too many systems, decreasing radius to {1}.".format(numberOfSystems, self.calculateRadius()))
 
         # number of systems within limits but distance exceeds set radius when using cached list -> increase radius
         elif numberOfSystems > 0 and self.calculateRadius() < self.systemList[0].distance:
@@ -271,15 +274,15 @@ class RseData(object):
             url = urlopen(rseUrl, timeout=10)
             if url.getcode() != 200:
                 # some error occurred
-                self.printDebug("Error calling RSE API. HTTP code: {code}.".format(code=url.getcode()))
-                self.printDebug("Tried to call {url}.".format(url=rseUrl))
+                logger.debug("Error calling RSE API. HTTP code: {code}.".format(code=url.getcode()))
+                logger.debug("Tried to call {url}.".format(url=rseUrl))
                 return False
             response = url.read()
             return json.loads(response)
         except Exception as e:
             # some error occurred
-            self.printDebug("Error calling RSE API. Error: {e}.".format(e=str(e)))
-            self.printDebug("Tried to call {url}.".format(url=rseUrl))
+            logger.debug("Error calling RSE API.", exc_info=e)
+            logger.debug("Tried to call {url}.".format(url=rseUrl))
             return None
 
     def generateListsFromRemoteDatabase(self, cmdr_x, cmdr_y, cmdr_z):
@@ -343,7 +346,7 @@ class RseData(object):
         systems.sort(key=lambda l: l.distance)
 
         self.systemList = systems
-        self.printDebug("Found {systems} systems within {radius} ly.".format(systems=len(systems), radius=self.calculateRadius()))
+        logger.debug("Found {systems} systems within {radius} ly.".format(systems=len(systems), radius=self.calculateRadius()))
 
         return True
 
@@ -410,24 +413,13 @@ class RseData(object):
         if len(self.projectsDict) == 0:
             response = self._queryRseAPI("https://cyberlord.de/rse/projects.py")
             if not response:
-                RseData.printError("Could not get information about projects.", showError=True)
+                errorMessage = "Could not get information about projects."
+                logger.error(errorMessage)
+                plug.show_error("{plugin_name}-{version}: {msg}".format(plugin_name=RseData.PLUGIN_NAME, version=RseData.VERSION, msg=errorMessage))
+
             for _row in response:
                 rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
                 self.projectsDict[rseProject.projectId] = rseProject
-    
-    def printDebug(self, msg):
-        if self.debug:
-            print("{plugin_name}-{version} (Debug): {msg}".format(plugin_name=RseData.PLUGIN_NAME, version=RseData.VERSION, msg=msg))
 
-    @staticmethod
-    def printError(msg, showError=False):
-        """
-        Prints/logs an error and can show it on the main window if necessary.
-        :param msg: The error message
-        :param showError: Whether to show it on the EDMC main window or not
-        :return:
-        """
-        errorMessage = "{plugin_name}-{version}: {msg}".format(plugin_name=RseData.PLUGIN_NAME, version=RseData.VERSION, msg=msg)
-        print(errorMessage)
-        if showError:
-            plug.show_error(errorMessage)
+
+logger = logging.getLogger(f"{appname}.{RseData.PLUGIN_NAME}-{RseData.VERSION}")

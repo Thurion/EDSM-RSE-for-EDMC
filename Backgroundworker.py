@@ -20,8 +20,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 from threading import Thread, Timer
 from BackgroundTask import TimedTask
 import traceback
+import logging
 
 from RseData import RseData
+from config import appname
+logger = logging.getLogger(f"{appname}.{RseData.PLUGIN_NAME}-{RseData.VERSION}")
 
 
 class BackgroundWorker(Thread):
@@ -33,7 +36,7 @@ class BackgroundWorker(Thread):
         self.timer = None
 
     def timerTask(self):
-        self.rseData.printDebug("TimerTask triggered.")
+        logging.debug("TimerTask triggered.")
         self.timer = Timer(self.interval, self.timerTask)
         self.timer.daemon = True
         self.timer.start()
@@ -52,13 +55,13 @@ class BackgroundWorker(Thread):
                 try:
                     task.execute()
                 except Exception as e:
-                    RseData.printError("Exception occurred in background task {bg}: {e}".format(bg=task.__class__.__name__, e=e))
+                    logger.exception("Exception occurred in background task {bg}.".format(bg=task.__class__.__name__))
                     traceback.print_exc()
 
             self.queue.task_done()
 
         if self.timer:
-            self.rseData.printDebug("Stopping RSE background timer.")
+            logger.debug("Stopping RSE background timer.")
             self.timer.cancel()
             self.timer.join()
         self.queue.task_done()

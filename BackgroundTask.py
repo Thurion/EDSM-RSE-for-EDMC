@@ -20,7 +20,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 import json
 import time
 import math
+import logging
 from RseData import RseData
+from config import appname
 
 try:
     # Python 2
@@ -31,6 +33,8 @@ except ModuleNotFoundError:
     from urllib.parse import quote
     from urllib.request import urlopen, Request
 
+logger = logging.getLogger(f"{appname}.{RseData.PLUGIN_NAME}-{RseData.VERSION}")
+
 
 class BackgroundTask(object):
     """
@@ -40,11 +44,11 @@ class BackgroundTask(object):
         self.rseData = rseData
 
     def execute(self):
-        self.rseData.printDebug("{} Didn't implement execute.".format(self.__class__.__name__))
+        logger.critical("{} Didn't implement execute.".format(self.__class__.__name__))
         pass  # to be implemented by subclass
 
     def fireEvent(self):
-        self.rseData.printDebug("{} Didn't implement fireEvent.".format(self.__class__.__name__))
+        logger.critical("{} Didn't implement fireEvent.".format(self.__class__.__name__))
         pass  # to be implemented by subclass
 
 
@@ -70,7 +74,7 @@ class BackgroundTaskClosestSystem(BackgroundTask):
 
     def removeSystems(self):
         removeMe = list(filter(lambda x: len(x.getProjectIds()) == 0, self.rseData.systemList))
-        self.rseData.printDebug("Adding {count} systems to removal filter: {systems}.".format(count=len(removeMe), systems=[x.name for x in removeMe]))
+        logger.debug("Adding {count} systems to removal filter: {systems}.".format(count=len(removeMe), systems=[x.name for x in removeMe]))
         self.rseData.systemList = [x for x in self.rseData.systemList if x not in removeMe]
         self.rseData.openLocalDatabase()
         for system in removeMe:
@@ -115,7 +119,7 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                     names.add(system.name.lower())  # name is in EDSM cache -> make sure the name is returned as if included in EDSM call
         edsmUrl += "&".join(params)
 
-        self.rseData.printDebug("Querying EDSM for {} systems.".format(len(params)))
+        logger.debug("Querying EDSM for {} systems.".format(len(params)))
 
         if len(params) > 0:
             try:
@@ -132,9 +136,9 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                 self.rseData.closeLocalDatabase()
 
                 return names
-            except:
+            except Exception as e:
                 # ignore. the EDSM call is not required
-                self.rseData.printDebug("EDSM call failed.")
+                logger.debug("EDSM call failed.", exc_info=e)
 
         # something went wrong. Return all systems as unknown
         names = set()
@@ -146,13 +150,13 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
         system = self.getSystemFromID(self.systemAddress)
 
         if system:  # arrived in system without coordinates
-            self.rseData.printDebug("Arrived in {}.".format(system.name))
+            logger.debug("Arrived in {}.".format(system.name))
             system.removeFromProject(RseData.PROJECT_RSE)
             self.removeSystems()
 
         if not self.rseData.generateListsFromRemoteDatabase(*self.coordinates):
             # distances need to be recalculated because we couldn't get a new list from the database
-            self.rseData.printDebug("Using cached system list for distances. Radius was set to {}.".format(self.rseData.calculateRadius()))
+            logger.debug("Using cached system list for targets. Radius was set to {}.".format(self.rseData.calculateRadius()))
             for system in self.rseData.systemList:
                 system.updateDistanceToCurrentCommanderPosition(*self.coordinates)
             self.rseData.systemList.sort(key=lambda l: l.distance)
@@ -211,7 +215,7 @@ class VersionCheckTask(BackgroundTask):
                         self.rseData.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
                         break
         except Exception as e:
-            RseData.printError("Failed to retrieve information about available updates. Error: {e}".format(e=e))
+            logger.exception("Failed to retrieve information about available updates.")
 
 
 class TimedTask(BackgroundTask):
@@ -269,14 +273,14 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
 
     def queryEdsm(self):
         edsmUrl = "https://www.edsm.net/api-system-v1/bodies?systemName={name}".format(name=quote(self.systemName))
-        self.rseData.printDebug("Querying EDSM for bodies of system {}.".format(self.systemName))
+        logger.debug("Querying EDSM for bodies of system {}.".format(self.systemName))
         try:
             url = urlopen(edsmUrl, timeout=10)
             response = url.read()
             edsmJson = json.loads(response)
             return edsmJson["id64"], len(edsmJson["bodies"])
-        except:
-            self.rseData.printDebug("EDSM body count call failed.")
+        except Exception as e:
+            logger.debug("EDSM body count call failed.", exc_info=e)
         return None, None  # error/timeout occurred
 
     def execute(self):

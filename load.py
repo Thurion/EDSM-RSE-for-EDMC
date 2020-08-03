@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import sys
 import time
+import logging
 
 try:
     # Python 2
@@ -40,15 +41,28 @@ except ModuleNotFoundError:
 
 import myNotebook as nb
 from ttkHyperlinkLabel import HyperlinkLabel
-from config import config
+from config import config, appname
 from l10n import Locale
 
 from RseData import RseData, EliteSystem
 from Backgroundworker import BackgroundWorker
 import BackgroundTask as BackgroundTask
 
-
+logger = logging.getLogger(f"{appname}.{RseData.PLUGIN_NAME}-{RseData.VERSION}")
 this = sys.modules[__name__]  # For holding module globals
+
+if not logger.hasHandlers():
+    level = logging.INFO  # So logger.info(...) is equivalent to print()
+
+    logger.setLevel(logging.INFO)
+    logger_channel = logging.StreamHandler()
+    logger_channel.setLevel(level)
+    logger_formatter = logging.Formatter(f"%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d:%(funcName)s: %(message)s")
+    logger_formatter.default_time_format = "%Y-%m-%d %H:%M:%S"
+    logger_formatter.default_msec_format = "%s.%03d"
+    logger_channel.setFormatter(logger_formatter)
+    logger.addHandler(this.logger_channel)
+
 
 this.CONFIG_IGNORED_PROJECTS = "EDSM-RSE_ignoredProjects"
 this.CONFIG_MAIN = "EDSM-RSE"
@@ -111,7 +125,11 @@ def plugin_start(plugin_dir):
     this.overwrite = tk.BooleanVar(value=((settings >> 6) & 0x01))
     this.edsmBodyCheck = tk.BooleanVar(value=not ((settings >> 7) & 0x01))  # invert to be on by default
     this.debug = tk.BooleanVar(value=((settings >> 8) & 0x01))
-    this.rseData.debug = this.debug.get()
+    if this.debug.get():
+        level = logging.DEBUG
+        logger.setLevel(level)
+        for handler in logger.handlers:
+            handler.setLevel(level)
     
     this.enabled = checkTransmissionOptions()
 
@@ -122,8 +140,8 @@ def plugin_start(plugin_dir):
     this.worker.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
     this.worker.start()
 
-    this.rseData.printDebug("Debug messages are enabled.")
-    this.rseData.printDebug("Python Version: {0}.".format(sys.version))
+    logger.debug("Debug messages are enabled.")
+    logger.debug("Python Version: {0}.".format(sys.version))
     return RseData.PLUGIN_NAME
 
 
@@ -263,7 +281,15 @@ def prefs_changed(cmdr, is_beta):
             this.queue.put(BackgroundTask.JumpedSystemTask(this.rseData, this.currentSystem))
 
     config.set(this.CONFIG_IGNORED_PROJECTS, this.rseData.ignoredProjectsFlags)
-    this.rseData.debug = this.debug.get()
+
+    if this.debug.get():
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+    logger.setLevel(level)
+    for handler in logger.handlers:
+        handler.setLevel(level)
+    logger.debug("Debug messages are enabled.")
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()
@@ -326,7 +352,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
 
     if this.commander != cmdr:
         # user switched commanders, reset the list of systems
-        this.rseData.printDebug("New commander detected: {cmdr}; resetting radius and clearing nearby systems.".format(cmdr=cmdr))
+        logger.debug("New commander detected: {cmdr}; resetting radius and clearing nearby systems.".format(cmdr=cmdr))
         this.commander = cmdr
         this.rseData.systemList = list()
         this.rseData.radiusExponent = RseData.DEFAULT_RADIUS_EXPONENT
