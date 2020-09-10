@@ -21,6 +21,7 @@ import json
 import time
 import math
 import logging
+import os
 from RseData import RseData
 from config import appname
 
@@ -33,7 +34,7 @@ except ModuleNotFoundError:
     from urllib.parse import quote
     from urllib.request import urlopen, Request
 
-logger = logging.getLogger(f"{appname}.{RseData.PLUGIN_NAME}-{RseData.VERSION}")
+logger = logging.getLogger(f"{appname}.{os.path.basename(os.path.dirname(__file__))}")
 
 
 class BackgroundTask(object):

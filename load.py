@@ -18,6 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
 import sys
+import os
 import time
 import logging
 
@@ -48,10 +49,13 @@ from RseData import RseData, EliteSystem
 from Backgroundworker import BackgroundWorker
 import BackgroundTask as BackgroundTask
 
-logger = logging.getLogger(f"{appname}.{RseData.PLUGIN_NAME}-{RseData.VERSION}")
+logger = logging.getLogger(f"{appname}.{os.path.basename(os.path.dirname(__file__))}")
 this = sys.modules[__name__]  # For holding module globals
 
+this.edmc_has_logging_support = True
+
 if not logger.hasHandlers():
+    this.edmc_has_logging_support = False
     level = logging.INFO  # So logger.info(...) is equivalent to print()
 
     logger.setLevel(logging.INFO)
@@ -245,8 +249,9 @@ def plugin_prefs(parent, cmdr, is_beta):
     # links
     ttk.Separator(frame, orient=tk.HORIZONTAL).grid(padx=PADX * 2, pady=8, sticky=tk.EW)
     nb.Label(frame, text="Plugin Version: {}".format(RseData.VERSION)).grid(padx=PADX, sticky=tk.W)
-    nb.Checkbutton(frame, variable=this.debug,
-                   text="Verbose Logging").grid(padx=PADX, sticky=tk.W)
+    if not this.edmc_has_logging_support:
+        nb.Checkbutton(frame, variable=this.debug,
+                       text="Verbose Logging").grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="Open the Github page for this plugin", background=nb.Label().cget("background"),
                    url="https://github.com/Thurion/EDSM-RSE-for-EDMC", underline=True).grid(padx=PADX, sticky=tk.W)
     HyperlinkLabel(frame, text="A big thanks to EDTS for providing the coordinates.", background=nb.Label().cget("background"),
@@ -289,7 +294,7 @@ def prefs_changed(cmdr, is_beta):
     logger.setLevel(level)
     for handler in logger.handlers:
         handler.setLevel(level)
-    logger.debug("Debug messages are enabled.")
+    logger.debug("RSE Debug messages are enabled.")
 
     updateUiUnconfirmedSystem()
     updateUiEdsmBodyCount()

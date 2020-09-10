@@ -36,6 +36,9 @@ except ModuleNotFoundError:
     # from typing import Dict, List, Any, Set
 
 
+logger = logging.getLogger(f"{appname}.{os.path.basename(os.path.dirname(__file__))}")
+
+
 class RseProject(object):
     def __init__(self, projectId, actionText, name, explanation, enabled):
         self.projectId = projectId  # type: int
@@ -420,6 +423,3 @@ class RseData(object):
             for _row in response:
                 rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
                 self.projectsDict[rseProject.projectId] = rseProject
-
-
-logger = logging.getLogger(f"{appname}.{RseData.PLUGIN_NAME}-{RseData.VERSION}")

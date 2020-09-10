@@ -19,12 +19,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 from threading import Thread, Timer
 from BackgroundTask import TimedTask
+import os
 import traceback
 import logging
 
 from RseData import RseData
 from config import appname
-logger = logging.getLogger(f"{appname}.{RseData.PLUGIN_NAME}-{RseData.VERSION}")
+logger = logging.getLogger(f"{appname}.{os.path.basename(os.path.dirname(__file__))}")
 
 
 class BackgroundWorker(Thread):
