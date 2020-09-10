@@ -193,7 +193,7 @@ class RseData(object):
 
     def openLocalDatabase(self):
         try:
-            self.localDbConnection = sqlite3.connect(os.path.join(self.pluginDir, "cache.sqlite"))
+            self.localDbConnection = sqlite3.connect(os.path.join(self.pluginDir, "cache.sqlite"), timeout=10)
             self.localDbCursor = self.localDbConnection.cursor()
         except Exception as e:
             errorMessage = "Local cache database could not be opened"
@@ -279,7 +279,7 @@ class RseData(object):
                 # some error occurred
                 logger.debug("Error calling RSE API. HTTP code: {code}.".format(code=url.getcode()))
                 logger.debug("Tried to call {url}.".format(url=rseUrl))
-                return False
+                return None
             response = url.read()
             return json.loads(response)
         except Exception as e:
@@ -419,7 +419,7 @@ class RseData(object):
                 errorMessage = "Could not get information about projects."
                 logger.error(errorMessage)
                 plug.show_error("{plugin_name}-{version}: {msg}".format(plugin_name=RseData.PLUGIN_NAME, version=RseData.VERSION, msg=errorMessage))
-
-            for _row in response:
-                rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
-                self.projectsDict[rseProject.projectId] = rseProject
+            else:
+                for _row in response:
+                    rseProject = RseProject(_row["id"], _row["action_text"], _row["project_name"], _row["explanation"], _row["enabled"])
+                    self.projectsDict[rseProject.projectId] = rseProject
