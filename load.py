@@ -116,15 +116,15 @@ class RseHyperlinkLabel(HyperlinkLabel):
 
 
 def checkTransmissionOptions():
-    eddn = (config.getint("output") & config.OUT_SYS_EDDN) == config.OUT_SYS_EDDN
-    edsm = config.getint("edsm_out") and 1
+    eddn = (config.get_int("output") & config.OUT_SYS_EDDN) == config.OUT_SYS_EDDN
+    edsm = config.get_int("edsm_out") and 1
     return eddn or edsm
 
 
 def plugin_start(plugin_dir):
     this.rseData = RseData(plugin_dir)
-    settings = config.getint(this.CONFIG_MAIN) or 0  # default setting
-    this.rseData.ignoredProjectsFlags = config.getint(this.CONFIG_IGNORED_PROJECTS)
+    settings = config.get_int(this.CONFIG_MAIN) or 0  # default setting
+    this.rseData.ignoredProjectsFlags = config.get_int(this.CONFIG_IGNORED_PROJECTS)
     this.clipboard = tk.BooleanVar(value=((settings >> 5) & 0x01))
     this.overwrite = tk.BooleanVar(value=((settings >> 6) & 0x01))
     this.edsmBodyCheck = tk.BooleanVar(value=not ((settings >> 7) & 0x01))  # invert to be on by default
