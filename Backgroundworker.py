@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 from threading import Thread, Timer
 from BackgroundTask import TimedTask
+from queue import Queue
 import os
 import traceback
 import logging
@@ -29,23 +30,23 @@ logger = logging.getLogger(f"{appname}.{os.path.basename(os.path.dirname(__file_
 
 
 class BackgroundWorker(Thread):
-    def __init__(self, queue, rseData, interval=60 * 15):
+    def __init__(self, queue: Queue, rse_data: RseData, interval: int = 60 * 15):
         Thread.__init__(self)
         self.queue = queue
-        self.rseData = rseData
+        self.rse_data = rse_data
         self.interval = interval  # in seconds
         self.timer = None
 
-    def timerTask(self):
+    def timer_task(self):
         logging.debug("TimerTask triggered.")
-        self.timer = Timer(self.interval, self.timerTask)
+        self.timer = Timer(self.interval, self.timer_task)
         self.timer.daemon = True
         self.timer.start()
-        self.queue.put(TimedTask(self.rseData))
+        self.queue.put(TimedTask(self.rse_data))
 
     def run(self):
-        self.rseData.initialize()
-        self.timer = Timer(self.interval, self.timerTask)
+        self.rse_data.initialize()
+        self.timer = Timer(self.interval, self.timer_task)
         self.timer.daemon = True
         self.timer.start()
         while True:
