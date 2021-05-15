@@ -162,7 +162,7 @@ def updateUiUnconfirmedSystem(event=None):
         this.unconfirmedSystem["text"] = eliteSystem.name
         this.unconfirmedSystem["url"] = "https://www.edsm.net/show-system?systemName={}".format(quote(eliteSystem.name))
         this.unconfirmedSystem["state"] = "enabled"
-        distanceText = u"{distance} Ly".format(distance=Locale.stringFromNumber(eliteSystem.distance, 2))
+        distanceText = u"{distance} Ly".format(distance=Locale.string_from_number(eliteSystem.distance, 2))
         if eliteSystem.uncertainty > 0:
             distanceText = distanceText + u" (\u00B1{uncertainty})".format(uncertainty=eliteSystem.uncertainty)
         this.distanceValue["text"] = distanceText
