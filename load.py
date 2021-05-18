@@ -144,7 +144,7 @@ def plugin_start3(plugin_dir):
 
 
 def update_ui_unconfirmed_system(event=None):
-    elite_system = this.rseData.last_event_info.get(RseData.BG_RSE_SYSTEM, None)
+    elite_system = this.rseData.last_event_info.get(RseData.BG_RSE_SYSTEM, None)  # type: EliteSystem
     message = this.rseData.last_event_info.get(RseData.BG_RSE_MESSAGE, None)
     if (this.enabled or this.overwrite.get()) and elite_system:
         this.errorLabel.grid_remove()
@@ -156,7 +156,7 @@ def update_ui_unconfirmed_system(event=None):
         if elite_system.uncertainty > 0:
             distance_text = distance_text + u" (\u00B1{uncertainty})".format(uncertainty=elite_system.uncertainty)
         this.distanceValue["text"] = distance_text
-        this.actionText["text"] = elite_system.getActionText()
+        this.actionText["text"] = elite_system.get_action_text()
         if this.clipboard.get():
             this.frame.clipboard_clear()
             this.frame.clipboard_append(elite_system.name)
