@@ -14,9 +14,12 @@ Scan populated systems - with the addition of nav beacon scans to the journal, E
 1. On EDMC's Plugins settings tab press the _Open_ button. This reveals the _plugins_ folder where EDMC looks for plugins.
 2. Download the [latest release](https://github.com/Thurion/EDSM-RSE-for-EDMC/releases).
 3. Open the _.zip_ archive that you downloaded and move the _EDSM-RSE_ folder contained inside into the _plugins_ folder.
-4. If you run EDMC from source, you might also need to install the module `psycopg2`. The version for Windows is bundled with this plugin.
 
 You will need to re-start EDMC to use the newly added plugin.
+
+## Updating the plugin
+
+Follow the steps described above (installation). Make sure to replace exisiting files, or if you want to keep the old directory as a backup, please rename the old version to `EDSM-RSE.disabled` so it won't interfere with the new version.
 
 ## Usage and Settings
 
