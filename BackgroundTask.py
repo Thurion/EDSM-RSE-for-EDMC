@@ -22,12 +22,13 @@ import time
 import math
 import logging
 import os
+import requests
+
+from urllib.parse import quote
+from typing import Dict, Set
+
 from RseData import RseData, EliteSystem
 from config import appname
-from urllib.parse import quote
-from urllib.request import urlopen
-
-from typing import Dict, Set
 
 logger = logging.getLogger(f"{appname}.{os.path.basename(os.path.dirname(__file__))}")
 
@@ -119,9 +120,8 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
 
         if len(params) > 0:
             try:
-                url = urlopen(edsm_url, timeout=10)
-                response = url.read()
-                edsm_json = json.loads(response)
+                response = requests.get(edsm_url, timeout=10)
+                edsm_json = json.loads(response.text)
                 for entry in edsm_json:
                     names.add(entry["name"].lower())
 
@@ -199,8 +199,8 @@ class VersionCheckTask(BackgroundTask):
 
     def execute(self):
         try:
-            response = urlopen(RseData.VERSION_CHECK_URL, timeout=10)
-            releases_info = json.loads(response.read())
+            response = requests.get(RseData.VERSION_CHECK_URL, timeout=10)
+            releases_info = json.loads(response.text)
             running_version = tuple(RseData.VERSION.split("."))
             for release_info in releases_info:
                 if not release_info["draft"] and not release_info["prerelease"]:
@@ -271,9 +271,8 @@ class FSSDiscoveryScanTask(EdsmBodyCheck):
         edsm_url = f"https://www.edsm.net/api-system-v1/bodies?systemName={quote(self.system_name)}"
         logger.debug(f"Querying EDSM for bodies of system {self.system_name}.")
         try:
-            url = urlopen(edsm_url, timeout=10)
-            response = url.read()
-            edsm_json = json.loads(response)
+            response = requests.get(edsm_url, timeout=10)
+            edsm_json = json.loads(response.text)
             return edsm_json["id64"], len(edsm_json["bodies"])
         except Exception as e:
             logger.debug("EDSM body count call failed.", exc_info=e)

@@ -25,9 +25,9 @@ import math
 import sqlite3
 import json
 import logging
-from config import appname
-from urllib.request import urlopen
+import requests
 from urllib.parse import urlencode
+from config import appname
 from typing import Dict, List, Any, Set, Union, Tuple, KeysView, Optional
 
 
@@ -269,18 +269,17 @@ class RseData(object):
         :return: parsed JSON or None
         """
         try:
-            url = urlopen(rse_url, timeout=10)
-            if url.getcode() != 200:
+            response = requests.get(rse_url, timeout=10)
+            if response.status_code != 200:
                 # some error occurred
-                logger.debug("Error calling RSE API. HTTP code: {code}.".format(code=url.getcode()))
-                logger.debug("Tried to call {url}.".format(url=rse_url))
+                logger.debug(f"Error calling RSE API. HTTP code: {response.status_code}.")
+                logger.debug(f"Tried to call {rse_url}.")
                 return None
-            response = url.read()
-            return json.loads(response)
+            return json.loads(response.text)
         except Exception as e:
             # some error occurred
             logger.debug("Error calling RSE API.", exc_info=e)
-            logger.debug("Tried to call {url}.".format(url=rse_url))
+            logger.debug(f"Tried to call {rse_url}.")
             return None
 
     def generate_lists_from_remote_database(self, cmdr_x: Union[float, int], cmdr_y: Union[float, int], cmdr_z: Union[float, int]) -> bool:
