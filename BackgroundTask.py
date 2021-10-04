@@ -76,7 +76,8 @@ class BackgroundTaskClosestSystem(BackgroundTask):
         self.rse_data.open_local_database()
         for system in remove_me:
             self.rse_data.get_cached_set(RseData.CACHE_IGNORED_SYSTEMS).add(system.id64)
-            self.rse_data.add_system_to_cache(system.id64, time.time() + 24 * 3600, RseData.CACHE_IGNORED_SYSTEMS, handle_db_connection=False)
+            self.rse_data.add_system_to_cache(system.id64, int(time.time() + 24 * 3600),
+                                              RseData.CACHE_IGNORED_SYSTEMS, handle_db_connection=False)
         self.rse_data.close_local_database()
 
 
@@ -125,7 +126,7 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                 for entry in edsm_json:
                     names.add(entry["name"].lower())
 
-                expiration_time = time.time() + 30 * 60  # ignore for 30 minutes
+                expiration_time = int(time.time() + 30 * 60)  # ignore for 30 minutes
                 self.rse_data.open_local_database()
                 for id64 in add_to_cache:
                     self.rse_data.add_system_to_cache(id64, expiration_time, RseData.CACHE_EDSM_RSE_QUERY, handle_db_connection=False)
