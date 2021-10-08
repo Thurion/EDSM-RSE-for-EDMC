@@ -119,7 +119,7 @@ class EliteSystem(object):
 
 class RseData(object):
 
-    VERSION = "1.4"
+    VERSION = "1.4.1"
     VERSION_CHECK_URL = "https://api.github.com/repos/Thurion/EDSM-RSE-for-EDMC/releases"
     PLUGIN_NAME = "EDSM-RSE"
 
