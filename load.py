@@ -91,15 +91,19 @@ class RseHyperlinkLabel(HyperlinkLabel):
 
     def __init__(self, master=None, **kw):
         super(RseHyperlinkLabel, self).__init__(master, **kw)
+        self.menu.add_command(label=_("Ignore once"), command=self.ignore_once)
         self.menu.add_command(label=_("Ignore this session"), command=self.ignore_temporarily)
         self.menu.add_command(label=_("Ignore for 24 hours"), command=self.ignore_for24)
         self.menu.add_command(label=_("Ignore indefinitely"), command=self.ignore_indefinitely)
+
+    def ignore_once(self):
+        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], True))
 
     def ignore_temporarily(self):
         this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"]))
 
     def ignore_for24(self):
-        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], time.time() + 24 * 3600))
+        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], False, int(time.time() + 24 * 3600)))
 
     def ignore_indefinitely(self):
         this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], 2 ** 31 - 1))

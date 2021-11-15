@@ -178,18 +178,22 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
 
 
 class IgnoreSystemTask(BackgroundTaskClosestSystem):
-    def __init__(self, rse_data: RseData, system_name: str, duration: int = 0):
+    """ Ignore a system name once, for the current EDSM session, or for a period of time. """
+    def __init__(self, rse_data: RseData, system_name: str, once: bool = False, duration: int = 0):
         super(IgnoreSystemTask, self).__init__(rse_data)
         self.system_name = system_name
         self.duration = duration
+        self.once = once
 
     def execute(self):
         for system in self.rse_data.system_list:
             if system.name.lower() == self.system_name.lower():
-                self.rse_data.get_cached_set(RseData.CACHE_IGNORED_SYSTEMS).add(system.id64)
                 self.rse_data.system_list.remove(system)
-                if self.duration > 0:
-                    self.rse_data.add_system_to_cache(system.id64, self.duration, RseData.CACHE_IGNORED_SYSTEMS)
+                if not self.once:
+                    self.rse_data.get_cached_set(RseData.CACHE_IGNORED_SYSTEMS).add(system.id64)
+                    if self.duration > 0:
+                        self.rse_data.add_system_to_cache(system.id64, self.duration, RseData.CACHE_IGNORED_SYSTEMS)
+
                 self.fire_event()
                 break
 
