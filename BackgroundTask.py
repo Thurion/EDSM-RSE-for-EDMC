@@ -126,7 +126,7 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
                 for entry in edsm_json:
                     names.add(entry["name"].lower())
 
-                expiration_time = int(time.time() + 30 * 60)  # ignore for 30 minutes
+                expiration_time = int(time.time() + 15 * 60)  # ignore for 15 minutes
                 self.rse_data.open_local_database()
                 for id64 in add_to_cache:
                     self.rse_data.add_system_to_cache(id64, expiration_time, RseData.CACHE_EDSM_RSE_QUERY, handle_db_connection=False)
