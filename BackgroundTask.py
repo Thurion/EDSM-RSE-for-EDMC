@@ -178,7 +178,10 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
 
 
 class IgnoreSystemTask(BackgroundTaskClosestSystem):
-    """ Ignore a system name once, for the current EDSM session, or for a period of time. """
+    """
+    Ignore a system name once, for the current EDSM session, or for a period of time.
+    If once is true, a given time will be ignored and the system will only be ignored once.
+    """
     def __init__(self, rse_data: RseData, system_name: str, once: bool = False, duration: int = 0):
         super(IgnoreSystemTask, self).__init__(rse_data)
         self.system_name = system_name

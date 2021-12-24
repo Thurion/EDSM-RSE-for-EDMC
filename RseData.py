@@ -167,7 +167,8 @@ class RseData(object):
 
         """ 
         Dictionary of sets that contain the cached systems. 
-        Key for the dictionary is the value of one of the CACHE_<type> variables. The value is the set that holds the corresponding systems 
+        Key for the dictionary is the value of one of the CACHE_<type> variables. The value is the set that holds the 
+        corresponding systems 
         Key for set is the ID64 of the cached system
         """
         self.__cachedSystems: Dict[int, Set[int]] = dict()
