@@ -188,7 +188,10 @@ class IgnoreSystemTask(BackgroundTaskClosestSystem):
     def execute(self):
         for system in self.rse_data.system_list:
             if system.name.lower() == self.system_name.lower():
+                # move system to back of the list. It will get sorted back to the front after a jump.
+                # removing from system_list will result in it being ignored until the program's EDSM cooldown runs off
                 self.rse_data.system_list.remove(system)
+                self.rse_data.system_list.append(system)
                 if not self.once:
                     self.rse_data.get_cached_set(RseData.CACHE_IGNORED_SYSTEMS).add(system.id64)
                     if self.duration > 0:

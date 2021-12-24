@@ -106,7 +106,7 @@ class RseHyperlinkLabel(HyperlinkLabel):
         this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], False, int(time.time() + 24 * 3600)))
 
     def ignore_indefinitely(self):
-        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], 2 ** 31 - 1))
+        this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], False, 2 ** 31 - 1))
 
 
 def check_transmission_options():
