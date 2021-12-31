@@ -163,14 +163,14 @@ class JumpedSystemTask(BackgroundTaskClosestSystem):
         while tries < 3 and len(self.rse_data.system_list) > 0:  # no do-while loops...
             closestSystems = self.rse_data.system_list[0:RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY]
             edsmResults = self.query_edsm(closestSystems)
-            if len(edsmResults) < RseData.EDSM_NUMBER_OF_SYSTEMS_TO_QUERY:
+            if len(edsmResults) > 0:
                 # remove systems with coordinates
                 systemsWithCoordinates = filter(lambda s: s.name.lower() not in edsmResults, closestSystems)
                 for system in systemsWithCoordinates:
                     system.remove_from_project(RseData.PROJECT_RSE)
                 self.remove_systems()
-            if len(edsmResults) > 0:
-                # there are still systems in the results -> stop here
+            if len(edsmResults) < len(closestSystems):
+                # there are still systems to jump into -> stop here
                 break
             tries += 1
 
@@ -191,10 +191,7 @@ class IgnoreSystemTask(BackgroundTaskClosestSystem):
     def execute(self):
         for system in self.rse_data.system_list:
             if system.name.lower() == self.system_name.lower():
-                # move system to back of the list. It will get sorted back to the front after a jump.
-                # removing from system_list will result in it being ignored until the program's EDSM cooldown runs off
                 self.rse_data.system_list.remove(system)
-                self.rse_data.system_list.append(system)
                 if not self.once:
                     self.rse_data.get_cached_set(RseData.CACHE_IGNORED_SYSTEMS).add(system.id64)
                     if self.duration > 0:
