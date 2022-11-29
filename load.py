@@ -45,17 +45,15 @@ this = sys.modules[__name__]  # For holding module globals
 this.edmc_has_logging_support = True
 
 if not logger.hasHandlers():
-    this.edmc_has_logging_support = False
     level = logging.INFO  # So logger.info(...) is equivalent to print()
 
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level)
     logger_channel = logging.StreamHandler()
-    logger_channel.setLevel(level)
     logger_formatter = logging.Formatter(f"%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d:%(funcName)s: %(message)s")
     logger_formatter.default_time_format = "%Y-%m-%d %H:%M:%S"
     logger_formatter.default_msec_format = "%s.%03d"
     logger_channel.setFormatter(logger_formatter)
-    #logger.addHandler(this.logger_channel)
+    logger.addHandler(logger_channel)
 
 
 this.CONFIG_IGNORED_PROJECTS = "EDSM-RSE_ignoredProjects"
