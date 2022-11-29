@@ -28,7 +28,7 @@ from urllib.parse import quote
 from typing import Dict, Set
 
 from RseData import RseData, EliteSystem
-from config import appname
+from config import appname, config
 
 logger = logging.getLogger(f"{appname}.{os.path.basename(os.path.dirname(__file__))}")
 
@@ -59,7 +59,7 @@ class BackgroundTaskClosestSystem(BackgroundTask):
         else:
             self.rse_data.last_event_info[RseData.BG_RSE_SYSTEM] = None
             self.rse_data.last_event_info[RseData.BG_RSE_MESSAGE] = "No system in range"
-        if self.rse_data.frame:
+        if self.rse_data.frame and not config.shutting_down:
             self.rse_data.frame.event_generate(RseData.EVENT_RSE_BACKGROUNDWORKER, when="tail")  # calls updateUI in main thread
 
     def get_system_from_id(self, id64):
@@ -214,7 +214,7 @@ class VersionCheckTask(BackgroundTask):
                 if not release_info["draft"] and not release_info["prerelease"]:
                     new_version_text = release_info["tag_name"].split("_")[1]
                     new_version_info = tuple(new_version_text.split("."))
-                    if running_version < new_version_info:
+                    if running_version < new_version_info and not config.shutting_down:
                         self.rse_data.last_event_info[RseData.BG_UPDATE_JSON] = {"version": new_version_text, "url": release_info["html_url"]}
                         self.rse_data.frame.event_generate(RseData.EVENT_RSE_UPDATE_AVAILABLE, when="tail")
                         break
@@ -246,7 +246,7 @@ class EdsmBodyCheck(BackgroundTaskClosestSystem):
 
     def fire_event_edsm_body_check(self, message=None):
         self.rse_data.last_event_info[RseData.BG_EDSM_BODY] = message or "?"
-        if self.rse_data.frame:
+        if self.rse_data.frame and not config.shutting_down:
             self.rse_data.frame.event_generate(RseData.EVENT_RSE_EDSM_BODY_COUNT, when="tail")  # calls updateUI in main thread
 
 
