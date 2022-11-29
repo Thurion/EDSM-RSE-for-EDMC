@@ -21,6 +21,7 @@ import sys
 import os
 import time
 import logging
+import semantic_version
 
 from queue import Queue
 from urllib.parse import quote
@@ -31,7 +32,7 @@ import tkinter.ttk as ttk
 import tkinter.messagebox as tkMessageBox
 import myNotebook as nb
 from ttkHyperlinkLabel import HyperlinkLabel
-from config import config, appname
+from config import config, appname, appversion
 from l10n import Locale
 
 from RseData import RseData, EliteSystem
@@ -110,8 +111,18 @@ class RseHyperlinkLabel(HyperlinkLabel):
 
 
 def check_transmission_options():
-    eddn = (config.get_int("output") & config.OUT_SYS_EDDN) == config.OUT_SYS_EDDN
-    edsm = config.get_int("edsm_out") and 1
+    if isinstance(appversion, str):
+        core_version = semantic_version.Version(appversion)
+
+    elif callable(appversion):
+        # From 5.0.0-beta1 it's a function, returning semantic_version.Version
+        core_version = appversion()
+    if core_version < semantic_version.Version('5.6.0-beta1'):
+        eddn = (config.get_int("output") & config.OUT_SYS_EDDN) == config.OUT_SYS_EDDN
+        edsm = config.get_int("edsm_out") and 1
+    else:
+        eddn = (config.get_int("output") & config.OUT_EDDN_SEND_NON_STATION) == config.OUT_EDDN_SEND_NON_STATION
+        edsm = config.get_int("edsm_out") and 1
     return eddn or edsm
 
 
