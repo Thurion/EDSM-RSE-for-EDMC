@@ -90,10 +90,40 @@ class RseHyperlinkLabel(HyperlinkLabel):
 
     def __init__(self, master=None, **kw):
         super(RseHyperlinkLabel, self).__init__(master, **kw)
-        self.menu.add_command(label=_("Ignore once"), command=self.ignore_once)
-        self.menu.add_command(label=_("Ignore this session"), command=self.ignore_temporarily)
-        self.menu.add_command(label=_("Ignore for 24 hours"), command=self.ignore_for24)
-        self.menu.add_command(label=_("Ignore indefinitely"), command=self.ignore_indefinitely)
+        if self.get_edmc_version() < semantic_version.Version('5.11.0'):
+            self.menu.add_command(label=_("Ignore once"), command=self.ignore_once)
+            self.menu.add_command(label=_("Ignore this session"), command=self.ignore_temporarily)
+            self.menu.add_command(label=_("Ignore for 24 hours"), command=self.ignore_for24)
+            self.menu.add_command(label=_("Ignore indefinitely"), command=self.ignore_indefinitely)
+
+    @staticmethod
+    def get_edmc_version():
+        if isinstance(appversion, str):
+            return semantic_version.Version(appversion)
+
+        elif callable(appversion):
+            # From 5.0.0-beta1 it's a function, returning semantic_version.Version
+            return appversion()
+
+    def _contextmenu(self, event: tk.Event) -> None:
+        if self.get_edmc_version() < semantic_version.Version('5.11.0'):
+            super()._contextmenu(event)
+        else:
+            menu = tk.Menu(tearoff=tk.FALSE)
+            menu.add_command(label=_("Copy"), command=self.copy)  # As in Copy and Paste
+
+            menu.add_separator()
+            menu.add_command(label=_("Ignore once"), command=self.ignore_once)
+            menu.add_command(label=_("Ignore this session"), command=self.ignore_temporarily)
+            menu.add_command(label=_("Ignore for 24 hours"), command=self.ignore_for24)
+            menu.add_command(label=_("Ignore indefinitely"), command=self.ignore_indefinitely)
+
+            menu.post(event.x_root, event.y_root)
+
+    def copy(self) -> None:
+        """Copy the current text to the clipboard."""
+        self.clipboard_clear()
+        self.clipboard_append(self['text'])
 
     def ignore_once(self):
         this.queue.put(BackgroundTask.IgnoreSystemTask(this.rseData, self["text"], True))
@@ -109,13 +139,7 @@ class RseHyperlinkLabel(HyperlinkLabel):
 
 
 def check_transmission_options():
-    if isinstance(appversion, str):
-        core_version = semantic_version.Version(appversion)
-
-    elif callable(appversion):
-        # From 5.0.0-beta1 it's a function, returning semantic_version.Version
-        core_version = appversion()
-    if core_version < semantic_version.Version('5.6.0-beta1'):
+    if RseHyperlinkLabel.get_edmc_version() < semantic_version.Version('5.6.0-beta1'):
         eddn = (config.get_int("output") & config.OUT_SYS_EDDN) == config.OUT_SYS_EDDN
         edsm = config.get_int("edsm_out") and 1
     else:
